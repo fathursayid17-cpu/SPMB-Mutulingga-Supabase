@@ -1,12 +1,12 @@
 // types.ts
 
 export interface StudentData {
-  // Metadata (Optional karena baru ada setelah save ke DB)
+  // Metadata (Wajib ada tanda tanya ? karena data baru belum punya ID)
   id?: string;
   created_at?: string;
   isInden?: boolean;
   
-  // Identitas
+  // Identitas Utama
   tahunAjaran: string;
   noUrut: string;
   namaSiswa: string;
@@ -37,7 +37,7 @@ export interface StudentData {
   transportasi: string;
   jarakTempuh: string;
 
-  // Keluarga
+  // Data Keluarga
   noKK: string;
   namaKepKeluarga: string;
 
@@ -69,7 +69,7 @@ export interface StudentData {
   pekerjaanWali: string;
   penghasilanWali: string;
 
-  // Bantuan
+  // Bantuan & Rumah
   kksKps: string;
   pkh: string;
   pip: string;
