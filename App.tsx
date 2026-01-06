@@ -60,7 +60,7 @@ const PROGRAM_OPTIONS = [
   { id: 'Fullday', label: 'FULLDAY', icon: '🏫', tier: 'Active', color: 'border-rose-500', glow: 'shadow-rose-500/20', desc: 'Integrasi kurikulum akademik & keislaman dari pagi-sore.' },
 ];
 
-const FULL_EMPTY_STUDENT_DATA: Partial<StudentData> = {
+const FULL_EMPTY_STUDENT_DATA: StudentData = {
   namaSiswa: '', fotoSiswa: '', nisLokal: '', nisn: '', nik: '', tempatLahir: '', tanggalLahir: '', agama: 'Islam', wargaNegara: 'WNI', jenisKelamin: 'Laki-laki',
   hobi: '', anakKe: '', jumlahSaudara: '', jenisTempatTinggal: 'Bersama Orang Tua', alamat: '', 
   propinsi: '', kabupaten: '', kecamatan: '', desaKelurahan: '', kodePos: '', 
@@ -71,7 +71,8 @@ const FULL_EMPTY_STUDENT_DATA: Partial<StudentData> = {
   namaWali: '', tahunLahirWali: '', nikWali: '', pendidikanWali: '', pekerjaanWali: '', penghasilanWali: '',
   tahunAjaran: '', jenisLembagaJenjang: 'SD', statusSekolahAsal: 'Negeri', namaSekolahMadrasah: '', pilihanProgram: 'Reguler',
   kksKps: '', pkh: '', pip: '', kip: '', statusKepemilikanRumahOrangTua: 'Milik Sendiri',
-  npsnSekolah: '', lokasiSekolah: '', noPesertaUN: '', noBlankoSKHU: '', noSeriIjazah: '', totalNilaiUN: ''
+  npsnSekolah: '', lokasiSekolah: '', noPesertaUN: '', noBlankoSKHU: '', noSeriIjazah: '', totalNilaiUN: '',
+  noUrut: '', isInden: false
 };
 
 // --- HELPER FUNGSI DB ---
@@ -120,7 +121,6 @@ const App: React.FC = () => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [schoolLogo, setSchoolLogo] = useState<string | null>(() => localStorage.getItem(LOGO_STORAGE_KEY) || DEFAULT_LOGO);
 
-  // --- STATE INIT (SUPABASE VERSION) ---
   const [state, setState] = useState<AppState>(() => {
     const lastSelectedYear = localStorage.getItem('mts_active_year') || DEFAULT_YEAR;
     return {
@@ -158,8 +158,9 @@ const App: React.FC = () => {
   const sortedData = useMemo(() => {
     if (!sortConfig) return filteredData;
     return [...filteredData].sort((a, b) => {
-      const aValue = String(a[sortConfig.key] || '');
-      const bValue = String(b[sortConfig.key] || '');
+      const key = sortConfig.key as keyof StudentData;
+      const aValue = String(a[key] || '');
+      const bValue = String(b[key] || '');
       if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
@@ -174,7 +175,6 @@ const App: React.FC = () => {
   const [loginCreds, setLoginCreds] = useState({ user: '', pass: '' });
   const [loginError, setLoginError] = useState('');
 
-  // --- FETCH DATA FROM SUPABASE ---
   const fetchRegistrants = async (year: string) => {
     const { data: dbData, error } = await supabase
       .from('pendaftaran')
@@ -313,7 +313,6 @@ const App: React.FC = () => {
 
   const handleNextStep = () => { setAdminFormStep(p => p + 1); };
 
-  // --- SUBMIT TO SUPABASE ---
   const handleSubmit = async () => {
     if (!validateCurrentStep()) return;
     setState(prev => ({ ...prev, isSubmitting: true }));
@@ -323,14 +322,12 @@ const App: React.FC = () => {
       let error = null;
 
       if (state.editingIndex !== null) {
-        // UPDATE
-        const studentId = (state.allRegistrants[state.editingIndex] as any).id;
+        const studentId = state.allRegistrants[state.editingIndex].id;
         if(studentId) {
              const { error: updateError } = await supabase.from('pendaftaran').update(payload).eq('id', studentId);
              error = updateError;
         }
       } else {
-        // INSERT
         const { error: insertError } = await supabase.from('pendaftaran').insert([payload]);
         error = insertError;
       }
@@ -351,12 +348,11 @@ const App: React.FC = () => {
     }
   };
 
-  // --- DELETE FROM SUPABASE ---
   const handleDelete = (index: number) => { setDeleteConfirm({ show: true, index }); };
   const performDelete = async () => {
     const index = deleteConfirm.index;
     if (index === null) return;
-    const studentId = (state.allRegistrants[index] as any).id;
+    const studentId = state.allRegistrants[index].id;
     if (!studentId) return;
 
     setState(prev => ({ ...prev, isSubmitting: true }));
@@ -383,7 +379,6 @@ const App: React.FC = () => {
   const exportToExcel = () => {
     if (state.allRegistrants.length === 0) return alert("Database masih kosong.");
     const dataToExport = state.allRegistrants.map((item) => {
-        // Export menggunakan format database yang lengkap (snake_case)
         return appStateToDb(item, item.isInden || false);
     });
     const worksheet = (window as any).XLSX.utils.json_to_sheet(dataToExport);
