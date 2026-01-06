@@ -1,0 +1,7 @@
+{
+  "name": "SPMB MTs Mutulingga - Bener, Pinter, lan Trampil",
+  "description": "Sistem Penerimaan Murid Baru (SPMB) MTs Muhammadiyah 01 Purbalingga dengan standar input EMIS lengkap dan analisis profil berbasis AI untuk Gen Alpha.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
