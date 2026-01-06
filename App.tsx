@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { supabase } from './supabaseClient'; 
 import { StudentData, AppState } from './types';
 import { analyzeStudentProfile } from './services/geminiService';
+import { dbService } from './services/dbService';
 import { Icons } from './constants';
 
-// --- KONSTANTA & OPSI ---
 const ACADEMIC_YEARS = ['2024/2025', '2025/2026', '2026/2027', '2027/2028', '2028/2029'];
 const DEFAULT_YEAR = '2026/2027';
 const LOGO_STORAGE_KEY = 'mts_school_logo';
@@ -25,8 +25,8 @@ const KABUPATEN_MAP: Record<string, string[]> = {
 
 const KECAMATAN_MAP: Record<string, string[]> = {
   'Purbalingga': ['Purbalingga', 'Kalimanah', 'Padamara', 'Kutasari', 'Bojongsari', 'Mrebet', 'Bobotsari', 'Karangreja', 'Karangjambu', 'Karanganyar', 'Kertanegara', 'Karangmoncol', 'Rembang', 'Pengadegan', 'Kaligondang', 'Kejobong', 'Bukateja', 'Kemangkon'],
-  'Banyumas': ['Purwokerto Utara', 'Purwokerto Selatan', 'Purwokerto Barat', 'Purwokerto Timur', 'Baturraden', 'Sokaraja', 'Kembaran', 'Sumbang', 'Kedungbanteng', 'Karanglewas', 'Cilongok', 'Ajibarang', 'Pekuncen', 'Gumelar', 'Lumbir', 'Wangon', 'Jatilawang', 'Rawalo', 'Kebasen', 'Patikraja', 'Purwojati', 'Kalibagor', 'Banyumas', 'Somagede', 'Tambak', 'Sumpiuh'],
-  'Banjarnegara': ['Banjarnegara', 'Sigaluh', 'Madukara', 'Banjarmangu', 'Wanadadi', 'Rakit', 'Punggelan', 'Mandiraja', 'Purwareja Klampok', 'Susukan', 'Kalibening', 'Pandanarum', 'Karangkobar', 'Pagentan', 'Pejawaran', 'Batur', 'Wanayasa', 'Pezawaran', 'Bawang'],
+  'Banyumas': ['Purwokerto Utara', 'Purwokerto Selatan', 'Purwokerto Barat', 'Purwokerto Timur', 'Baturraden', 'Sokaraja', 'Kembaran', 'Sumbang', 'Kedungbanteng', 'Karanglewas', 'Cilongok', 'Ajibarang', 'Pekuncen', 'Gumelar', 'Lumbir', 'Wangon', 'Jatilawang', 'Rawalo', 'Kebasen', 'Patikraja', 'Purwojati', 'Kalibagor', 'Banyumas', 'Somagede', 'Kalibagor', 'Tambak', 'Sumpiuh'],
+  'Banjarnegara': ['Banjarnegara', 'Sigaluh', 'Madukara', 'Banjarmangu', 'Wanadadi', 'Rakit', 'Punggelan', 'Mandiraja', 'Purwareja Klampok', 'Susukan', 'Kalibening', 'Pandanarum', 'Karangkobar', 'Pagentan', 'Pejawaran', 'Batur', 'Wanayasa', 'Kalibening', 'Pezawaran', 'Bawang'],
 };
 
 const DESA_MAP: Record<string, string[]> = {
@@ -60,8 +60,7 @@ const PROGRAM_OPTIONS = [
   { id: 'Fullday', label: 'FULLDAY', icon: '🏫', tier: 'Active', color: 'border-rose-500', glow: 'shadow-rose-500/20', desc: 'Integrasi kurikulum akademik & keislaman dari pagi-sore.' },
 ];
 
-// Perbaikan: Hapus Partial<> agar sesuai dengan StudentData
-const FULL_EMPTY_STUDENT_DATA: StudentData = {
+const FULL_EMPTY_STUDENT_DATA: Partial<StudentData> = {
   namaSiswa: '', fotoSiswa: '', nisLokal: '', nisn: '', nik: '', tempatLahir: '', tanggalLahir: '', agama: 'Islam', wargaNegara: 'WNI', jenisKelamin: 'Laki-laki',
   hobi: '', anakKe: '', jumlahSaudara: '', jenisTempatTinggal: 'Bersama Orang Tua', alamat: '', 
   propinsi: '', kabupaten: '', kecamatan: '', desaKelurahan: '', kodePos: '', 
@@ -73,47 +72,8 @@ const FULL_EMPTY_STUDENT_DATA: StudentData = {
   tahunAjaran: '', jenisLembagaJenjang: 'SD', statusSekolahAsal: 'Negeri', namaSekolahMadrasah: '', pilihanProgram: 'Reguler',
   kksKps: '', pkh: '', pip: '', kip: '', statusKepemilikanRumahOrangTua: 'Milik Sendiri',
   npsnSekolah: '', lokasiSekolah: '', noPesertaUN: '', noBlankoSKHU: '', noSeriIjazah: '', totalNilaiUN: '',
-  // Tambahan default agar type aman
-  noUrut: '', isInden: false
+  aiAnalysis: ''
 };
-
-// --- HELPER FUNGSI DB ---
-const appStateToDb = (data: StudentData, isInden: boolean) => ({
-    tahun_ajaran: data.tahunAjaran, no_urut: data.noUrut, nama_siswa: data.namaSiswa, nis_lokal: data.nisLokal, nisn: data.nisn, nik: data.nik,
-    tempat_lahir: data.tempatLahir, tanggal_lahir: data.tanggalLahir, agama: data.agama, warga_negara: data.wargaNegara, jenis_kelamin: data.jenisKelamin,
-    hobi: data.hobi, anak_ke: data.anakKe, jumlah_saudara: data.jumlahSaudara, pilihan_program: data.pilihanProgram, foto_siswa: data.fotoSiswa,
-    jenis_tempat_tinggal: data.jenisTempatTinggal, alamat: data.alamat, propinsi: data.propinsi, kabupaten: data.kabupaten, kecamatan: data.kecamatan,
-    desa_kelurahan: data.desaKelurahan, kode_pos: data.kodePos, nomor_telepon: data.nomorTelepon, jarak_tempat_tinggal: data.jarakTempatTinggal,
-    transportasi: data.transportasi, jarak_tempuh: data.jarakTempuh, no_kk: data.noKK, nama_kep_keluarga: data.namaKepKeluarga,
-    nama_ayah: data.namaAyah, nik_ayah: data.nikAyah, tempat_lahir_ayah: data.tempatLahirAyah, tgl_lahir_ayah: data.tglLahirAyah, status_ayah: data.statusAyah,
-    pekerjaan_ayah: data.pekerjaanAyah, penghasilan_ayah_perbulan: data.penghasilanAyahPerbulan, pendidikan_ayah: data.pendidikanAyah,
-    nama_ibu: data.namaIbu, nik_ibu: data.nikIbu, tempat_lahir_ibu: data.tempatLahirIbu, tgl_lahir_ibu: data.tglLahirIbu, status_ibu: data.statusIbu,
-    pekerjaan_ibu: data.pekerjaanIbu, penghasilan_ibu_perbulan: data.penghasilanIbuPerbulan, pendidikan_ibu: data.pendidikanIbu,
-    nama_wali: data.namaWali, tahun_lahir_wali: data.tahunLahirWali, nik_wali: data.nikWali, pendidikan_wali: data.pendidikanWali,
-    pekerjaan_wali: data.pekerjaanWali, penghasilan_wali: data.penghasilanWali, kks_kps: data.kksKps, pkh: data.pkh, pip: data.pip, kip: data.kip,
-    status_kepemilikan_rumah_orang_tua: data.statusKepemilikanRumahOrangTua, jenis_lembaga_jenjang: data.jenisLembagaJenjang, status_sekolah_asal: data.statusSekolahAsal,
-    npsn_sekolah: data.npsnSekolah, nama_sekolah_madrasah: data.namaSekolahMadrasah, lokasi_sekolah: data.lokasiSekolah, no_peserta_un: data.noPesertaUN,
-    no_blanko_skhu: data.noBlankoSKHU, no_seri_ijazah: data.noSeriIjazah, total_nilai_un: data.totalNilaiUN, is_inden: isInden
-});
-
-const dbToAppState = (dbRow: any): StudentData => ({
-    ...FULL_EMPTY_STUDENT_DATA,
-    id: dbRow.id, tahunAjaran: dbRow.tahun_ajaran || '', noUrut: dbRow.no_urut || '', namaSiswa: dbRow.nama_siswa || '', nisLokal: dbRow.nis_lokal || '', nisn: dbRow.nisn || '', nik: dbRow.nik || '',
-    tempatLahir: dbRow.tempat_lahir || '', tanggalLahir: dbRow.tanggal_lahir || '', agama: dbRow.agama || '', wargaNegara: dbRow.warga_negara || '', jenisKelamin: dbRow.jenis_kelamin || '',
-    hobi: dbRow.hobi || '', anakKe: dbRow.anak_ke || '', jumlahSaudara: dbRow.jumlah_saudara || '', pilihanProgram: dbRow.pilihan_program || '', fotoSiswa: dbRow.foto_siswa || '',
-    jenisTempatTinggal: dbRow.jenis_tempat_tinggal || '', alamat: dbRow.alamat || '', propinsi: dbRow.propinsi || '', kabupaten: dbRow.kabupaten || '', kecamatan: dbRow.kecamatan || '',
-    desaKelurahan: dbRow.desa_kelurahan || '', kodePos: dbRow.kode_pos || '', nomorTelepon: dbRow.nomor_telepon || '', jarakTempatTinggal: dbRow.jarak_tempat_tinggal || '',
-    transportasi: dbRow.transportasi || '', jarakTempuh: dbRow.jarak_tempuh || '', noKK: dbRow.no_kk || '', namaKepKeluarga: dbRow.nama_kep_keluarga || '',
-    namaAyah: dbRow.nama_ayah || '', nikAyah: dbRow.nik_ayah || '', tempatLahirAyah: dbRow.tempat_lahir_ayah || '', tglLahirAyah: dbRow.tgl_lahir_ayah || '', statusAyah: dbRow.status_ayah || '',
-    pekerjaanAyah: dbRow.pekerjaan_ayah || '', penghasilanAyahPerbulan: dbRow.penghasilan_ayah_perbulan || '', pendidikanAyah: dbRow.pendidikan_ayah || '',
-    namaIbu: dbRow.nama_ibu || '', nikIbu: dbRow.nik_ibu || '', tempatLahirIbu: dbRow.tempat_lahir_ibu || '', tglLahirIbu: dbRow.tgl_lahir_ibu || '', statusIbu: dbRow.status_ibu || '',
-    pekerjaanIbu: dbRow.pekerjaan_ibu || '', penghasilanIbuPerbulan: dbRow.penghasilan_ibu_perbulan || '', pendidikanIbu: dbRow.pendidikan_ibu || '',
-    namaWali: dbRow.nama_wali || '', tahunLahirWali: dbRow.tahun_lahir_wali || '', nikWali: dbRow.nik_wali || '', pendidikanWali: dbRow.pendidikan_wali || '',
-    pekerjaanWali: dbRow.pekerjaan_wali || '', penghasilanWali: dbRow.penghasilan_wali || '', kksKps: dbRow.kks_kps || '', pkh: dbRow.pkh || '', pip: dbRow.pip || '', kip: dbRow.kip || '',
-    statusKepemilikanRumahOrangTua: dbRow.status_kepemilikan_rumah_orang_tua || '', jenisLembagaJenjang: dbRow.jenis_lembaga_jenjang || '', statusSekolahAsal: dbRow.status_sekolah_asal || '',
-    npsnSekolah: dbRow.npsn_sekolah || '', namaSekolahMadrasah: dbRow.nama_sekolah_madrasah || '', lokasiSekolah: dbRow.lokasi_sekolah || '', noPesertaUN: dbRow.no_peserta_un || '',
-    noBlankoSKHU: dbRow.no_blanko_skhu || '', noSeriIjazah: dbRow.no_seri_ijazah || '', totalNilaiUN: dbRow.total_nilai_un || '', isInden: dbRow.is_inden
-});
 
 const App: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -121,15 +81,15 @@ const App: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [schoolLogo, setSchoolLogo] = useState<string | null>(() => localStorage.getItem(LOGO_STORAGE_KEY) || DEFAULT_LOGO);
 
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(() => localStorage.getItem(LOGO_STORAGE_KEY) || DEFAULT_LOGO);
   const [state, setState] = useState<AppState>(() => {
     const lastSelectedYear = localStorage.getItem('mts_active_year') || DEFAULT_YEAR;
     return {
       viewMode: 'landing', 
       currentStep: 'inden', 
       selectedYear: lastSelectedYear,
-      studentData: { ...FULL_EMPTY_STUDENT_DATA, tahunAjaran: lastSelectedYear },
+      studentData: { ...FULL_EMPTY_STUDENT_DATA, tahunAjaran: lastSelectedYear, noUrut: '...' },
       errors: {}, 
       isSubmitting: false, 
       isFinished: false, 
@@ -146,9 +106,38 @@ const App: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: keyof StudentData; direction: 'asc' | 'desc' } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; index: number | null }>({ show: false, index: null });
+  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; id: string | null }>({ show: false, id: null });
   const itemsPerPage = 10;
+  const [loadingDb, setLoadingDb] = useState(false);
+
   const adminFormSections = ["Identitas Siswa", "Alamat & Kontak", "Data Orang Tua & Wali", "Bantuan & Rumah", "Sekolah Asal"];
+
+  // Fetch data when View Mode is Admin or when Year changes
+  useEffect(() => {
+    const loadData = async () => {
+      setLoadingDb(true);
+      try {
+        const data = await dbService.fetchAll(state.selectedYear);
+        setState(prev => ({ 
+          ...prev, 
+          allRegistrants: data,
+          studentData: { 
+            ...prev.studentData, 
+            tahunAjaran: state.selectedYear, 
+            noUrut: (data.length + 1).toString() 
+          }
+        }));
+      } catch (error) {
+        console.error("Failed to load data:", error);
+      } finally {
+        setLoadingDb(false);
+      }
+    };
+
+    // Trigger load jika masuk mode admin atau ganti tahun
+    loadData();
+    localStorage.setItem('mts_active_year', state.selectedYear);
+  }, [state.selectedYear, state.viewMode]);
 
   const filteredData = useMemo(() => {
     const search = searchTerm.toLowerCase();
@@ -160,9 +149,8 @@ const App: React.FC = () => {
   const sortedData = useMemo(() => {
     if (!sortConfig) return filteredData;
     return [...filteredData].sort((a, b) => {
-      const key = sortConfig.key as keyof StudentData;
-      const aValue = String(a[key] || '');
-      const bValue = String(b[key] || '');
+      const aValue = String(a[sortConfig.key] || '');
+      const bValue = String(b[sortConfig.key] || '');
       if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
@@ -177,47 +165,28 @@ const App: React.FC = () => {
   const [loginCreds, setLoginCreds] = useState({ user: '', pass: '' });
   const [loginError, setLoginError] = useState('');
 
-  // --- FETCH DATA FROM SUPABASE ---
-  const fetchRegistrants = async (year: string) => {
-    const { data: dbData, error } = await supabase
-      .from('pendaftaran')
-      .select('*')
-      .eq('tahun_ajaran', year)
-      .order('created_at', { ascending: true });
+  // Camera cleanup
+  useEffect(() => {
+    return () => stopCamera();
+  }, []);
 
-    if (error) {
-      console.error("Error fetching data:", error);
-    } else if (dbData) {
-       // Perbaikan: Tambahkan tipe explicit (any) agar tidak error TS7006
-       const converted = dbData.map((row: any) => dbToAppState(row));
-       setState(prev => ({ 
-        ...prev, 
-        allRegistrants: converted,
-        studentData: { 
-            ...prev.studentData, 
-            tahunAjaran: year, 
-            noUrut: (converted.length + 1).toString() 
-        }
-      }));
-    }
+  const handleLogoClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fileInputRef.current?.click();
   };
 
-  useEffect(() => {
-    fetchRegistrants(state.selectedYear);
-    localStorage.setItem('mts_active_year', state.selectedYear);
-  }, [state.selectedYear]);
-
-  useEffect(() => { return () => stopCamera(); }, []);
-
-  const handleLogoClick = (e: React.MouseEvent) => { e.stopPropagation(); fileInputRef.current?.click(); };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) return alert("Ukuran file terlalu besar! Maksimal 2MB.");
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Ukuran file terlalu besar! Maksimal 2MB.");
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setSchoolLogo(reader.result as string);
-        localStorage.setItem(LOGO_STORAGE_KEY, reader.result as string);
+        const base64String = reader.result as string;
+        setSchoolLogo(base64String);
+        localStorage.setItem(LOGO_STORAGE_KEY, base64String);
       };
       reader.readAsDataURL(file);
     }
@@ -226,9 +195,15 @@ const App: React.FC = () => {
   const handleStudentPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) return alert("Ukuran file terlalu besar! Maksimal 2MB.");
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Ukuran file terlalu besar! Maksimal 2MB.");
+        return;
+      }
       const reader = new FileReader();
-      reader.onloadend = () => { updateData({ fotoSiswa: reader.result as string }); };
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        updateData({ fotoSiswa: base64String });
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -236,38 +211,61 @@ const App: React.FC = () => {
   const startCamera = async () => {
     setIsCameraOpen(true);
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 400 }, height: { ideal: 400 } } });
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'user', width: { ideal: 400 }, height: { ideal: 400 } } 
+        });
         if (videoRef.current) videoRef.current.srcObject = stream;
-    } catch (err) { alert("Gagal mengakses kamera."); setIsCameraOpen(false); }
+    } catch (err) {
+        alert("Gagal mengakses kamera.");
+        setIsCameraOpen(false);
+    }
   };
+
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
-        (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
         videoRef.current.srcObject = null;
     }
     setIsCameraOpen(false);
   };
+
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
-        const context = canvasRef.current.getContext('2d');
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
         if (context) {
-            canvasRef.current.width = videoRef.current.videoWidth;
-            canvasRef.current.height = videoRef.current.videoHeight;
-            context.translate(canvasRef.current.width, 0);
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.translate(canvas.width, 0);
             context.scale(-1, 1);
-            context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
-            updateData({ fotoSiswa: canvasRef.current.toDataURL('image/png') });
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            updateData({ fotoSiswa: canvas.toDataURL('image/png') });
             stopCamera();
         }
     }
   };
-  const retakePhoto = () => { updateData({ fotoSiswa: '' }); startCamera(); };
 
-  const LogoComponent = ({ size = "md", isBlackAndWhite = false, interactive = true }: any) => {
+  const retakePhoto = () => {
+      updateData({ fotoSiswa: '' });
+      startCamera();
+  };
+
+  const LogoComponent = ({ size = "md", isBlackAndWhite = false, interactive = true }: { size?: "sm" | "md" | "lg", isBlackAndWhite?: boolean, interactive?: boolean }) => {
     const dim = size === "sm" ? "w-10 h-10" : size === "md" ? "w-20 h-20" : "w-32 h-32";
     return (
-      <div onClick={interactive ? handleLogoClick : undefined} className={`${dim} flex items-center justify-center overflow-hidden bg-slate-800 rounded-2xl border border-slate-700 shadow-xl relative group ${isBlackAndWhite ? 'print:bg-transparent print:border-slate-300' : ''} ${interactive ? 'cursor-pointer hover:border-maroon' : ''}`}>
-        <img src={schoolLogo || DEFAULT_LOGO} alt="Logo" className={`w-full h-full object-contain p-1.5 ${isBlackAndWhite ? 'print:grayscale' : ''}`} onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_LOGO; }} />
+      <div 
+        onClick={interactive ? handleLogoClick : undefined}
+        className={`${dim} flex items-center justify-center overflow-hidden bg-slate-800 rounded-2xl border border-slate-700 shadow-xl transition-all duration-300 relative group ${isBlackAndWhite ? 'print:bg-transparent print:border-slate-300' : ''} ${interactive ? 'cursor-pointer hover:border-maroon hover:shadow-maroon/20' : ''}`}
+      >
+        <img src={schoolLogo || DEFAULT_LOGO} alt="School Logo" className={`w-full h-full object-contain p-1.5 ${isBlackAndWhite ? 'print:grayscale' : ''}`} onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_LOGO; }} />
+        {interactive && (
+          <div className="absolute inset-0 bg-maroon/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white no-print">
+            <svg className="w-5 h-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
+            <span className="text-[8px] font-black uppercase tracking-tighter">Ganti Logo</span>
+          </div>
+        )}
       </div>
     );
   };
@@ -275,35 +273,51 @@ const App: React.FC = () => {
   const safeExit = () => {
     stopCamera();
     setState(prev => ({ 
-      ...prev, viewMode: 'landing', currentStep: 'inden', isAdminAuthenticated: false, isFinished: false, editingIndex: null,
-      studentData: { ...FULL_EMPTY_STUDENT_DATA, tahunAjaran: prev.selectedYear, noUrut: (prev.allRegistrants.length + 1).toString() }, errors: {}
+      ...prev, 
+      viewMode: 'landing', 
+      currentStep: 'inden',
+      isAdminAuthenticated: false,
+      isFinished: false,
+      editingIndex: null,
+      studentData: { ...FULL_EMPTY_STUDENT_DATA, tahunAjaran: prev.selectedYear, noUrut: (prev.allRegistrants.length + 1).toString() },
+      errors: {}
     }));
-    setAdminSubView('table'); setAdminFormStep(0); setLoginCreds({ user: '', pass: '' });
+    setAdminSubView('table');
+    setAdminFormStep(0);
+    setLoginCreds({ user: '', pass: '' });
+    setLoginError('');
   };
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (loginCreds.user === 'Mutulingga' && loginCreds.pass === 'Jaya1') {
       setState(prev => ({ ...prev, viewMode: 'admin', isAdminAuthenticated: true }));
-      setAdminSubView('table'); setLoginError('');
-    } else { setLoginError('Kredensial salah!'); }
+      setAdminSubView('table');
+      setLoginError('');
+    } else {
+      setLoginError('Kredensial salah! Pastikan User: Mutulingga dan Password: Jaya1');
+    }
   };
 
   const updateData = (fields: Partial<StudentData>) => {
     setState(prev => {
-      let newData = { ...prev.studentData, ...fields };
-      if ('propinsi' in fields) { newData.kabupaten = ''; newData.kecamatan = ''; newData.desaKelurahan = ''; newData.kodePos = ''; }
-      else if ('kabupaten' in fields) { newData.kecamatan = ''; newData.desaKelurahan = ''; newData.kodePos = ''; }
-      else if ('kecamatan' in fields) { newData.desaKelurahan = ''; newData.kodePos = ''; }
-      else if ('desaKelurahan' in fields) { newData.kodePos = KODEPOS_MAP[fields.desaKelurahan!] || ''; }
-      const newErrors = { ...prev.errors }; Object.keys(fields).forEach(key => delete newErrors[key]);
-      return { ...prev, studentData: newData, errors: newErrors };
+      let newStudentData = { ...prev.studentData, ...fields };
+      // Cascade clear
+      if ('propinsi' in fields) { newStudentData.kabupaten = ''; newStudentData.kecamatan = ''; newStudentData.desaKelurahan = ''; newStudentData.kodePos = ''; }
+      else if ('kabupaten' in fields) { newStudentData.kecamatan = ''; newStudentData.desaKelurahan = ''; newStudentData.kodePos = ''; }
+      else if ('kecamatan' in fields) { newStudentData.desaKelurahan = ''; newStudentData.kodePos = ''; }
+      else if ('desaKelurahan' in fields) { newStudentData.kodePos = KODEPOS_MAP[fields.desaKelurahan!] || ''; }
+      
+      const newErrors = { ...prev.errors };
+      Object.keys(fields).forEach(key => delete newErrors[key]);
+      return { ...prev, studentData: newStudentData, errors: newErrors };
     });
   };
 
   const validateCurrentStep = (): boolean => {
     const data = state.studentData;
     const errors: Record<string, string> = {};
+
     if (state.viewMode === 'inden' || (state.viewMode === 'admin' && adminFormStep === 0)) {
       if (!data.namaSiswa?.trim()) errors.namaSiswa = "Nama Lengkap wajib diisi";
       if (!data.nisn?.trim() || data.nisn.length < 10) errors.nisn = "NISN minimal 10 digit";
@@ -315,60 +329,75 @@ const App: React.FC = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleNextStep = () => { setAdminFormStep(p => p + 1); };
+  const handleNextStep = () => setAdminFormStep(p => p + 1);
 
-  // --- SUBMIT TO SUPABASE ---
   const handleSubmit = async () => {
     if (!validateCurrentStep()) return;
+    
     setState(prev => ({ ...prev, isSubmitting: true }));
     try {
       const isIndenMode = state.viewMode === 'inden';
-      const payload = appStateToDb(state.studentData, isIndenMode);
-      let error = null;
-
+      const newRegistrant = { ...FULL_EMPTY_STUDENT_DATA, ...state.studentData, isInden: isIndenMode };
+      
+      let savedData: any;
+      
       if (state.editingIndex !== null) {
-        // UPDATE (Pastikan id ada)
-        const studentId = state.allRegistrants[state.editingIndex].id;
-        if(studentId) {
-             const { error: updateError } = await supabase.from('pendaftaran').update(payload).eq('id', studentId);
-             error = updateError;
-        }
+        // Mode Edit: Update DB
+        const idToUpdate = (state.studentData as any).id;
+        savedData = await dbService.update(idToUpdate, newRegistrant);
       } else {
-        // INSERT
-        const { error: insertError } = await supabase.from('pendaftaran').insert([payload]);
-        error = insertError;
+        // Mode Create: Insert DB
+        savedData = await dbService.create(newRegistrant);
       }
 
-      if (error) throw error;
-
-      await fetchRegistrants(state.selectedYear);
       let analysis = null;
       if (isIndenMode) {
-        try { analysis = await analyzeStudentProfile(state.studentData); } catch(e) { console.error(e); }
+        try {
+          analysis = await analyzeStudentProfile(state.studentData);
+          // Update DB with analysis if available
+          if (analysis && savedData && savedData.id) {
+            await dbService.update(savedData.id, { aiAnalysis: analysis });
+            savedData.aiAnalysis = analysis;
+          }
+        } catch(e) { console.error(e); }
       }
-      setState(prev => ({ ...prev, isSubmitting: false, isFinished: true, aiAnalysis: analysis, editingIndex: null }));
+      
+      // Refresh data local dari DB setelah semua proses (termasuk update AI) selesai
+      const refreshedData = await dbService.fetchAll(state.selectedYear);
 
-    } catch (error: any) {
+      setState(prev => ({ 
+        ...prev, 
+        allRegistrants: refreshedData, 
+        isSubmitting: false, 
+        isFinished: true, 
+        aiAnalysis: analysis, 
+        editingIndex: null,
+        studentData: { ...savedData } // set current data to saved one (has ID)
+      }));
+
+    } catch (error) {
+      alert("Gagal menyimpan data ke database server.");
       console.error(error);
-      alert("Gagal menyimpan data: " + (error.message || "Unknown Error"));
       setState(prev => ({ ...prev, isSubmitting: false }));
     }
   };
 
-  // --- DELETE FROM SUPABASE ---
-  const handleDelete = (index: number) => { setDeleteConfirm({ show: true, index }); };
+  const handleDelete = (id: string) => {
+    setDeleteConfirm({ show: true, id });
+  };
+
   const performDelete = async () => {
-    const index = deleteConfirm.index;
-    if (index === null) return;
-    const studentId = state.allRegistrants[index].id;
-    if (!studentId) return;
-
-    setState(prev => ({ ...prev, isSubmitting: true }));
-    const { error } = await supabase.from('pendaftaran').delete().eq('id', studentId);
-
-    if (error) { alert("Gagal menghapus data"); } 
-    else { await fetchRegistrants(state.selectedYear); setDeleteConfirm({ show: false, index: null }); }
-    setState(prev => ({ ...prev, isSubmitting: false }));
+    const id = deleteConfirm.id;
+    if (!id) return;
+    
+    try {
+      await dbService.delete(id);
+      const updated = state.allRegistrants.filter((item: any) => item.id !== id);
+      setState(prev => ({ ...prev, allRegistrants: updated }));
+    } catch (error) {
+      alert("Gagal menghapus data.");
+    }
+    setDeleteConfirm({ show: false, id: null });
   };
 
   const handlePrintBukti = async () => {
@@ -386,9 +415,27 @@ const App: React.FC = () => {
 
   const exportToExcel = () => {
     if (state.allRegistrants.length === 0) return alert("Database masih kosong.");
-    const dataToExport = state.allRegistrants.map((item) => {
-        // Export menggunakan format database yang lengkap (snake_case)
-        return appStateToDb(item, item.isInden || false);
+    // Mapping sesuai urutan SQL
+    const dataToExport = state.allRegistrants.map((item, i) => {
+        return {
+          "id": (item as any).id,
+          "created_at": new Date().toISOString(),
+          "nama_siswa": item.namaSiswa, "nis_lokal": item.nisLokal, "nisn": item.nisn, "nik": item.nik,
+          "tempat_lahir": item.tempatLahir, "tanggal_lahir": item.tanggalLahir, "agama": item.agama, "warga_negara": item.wargaNegara, "jenis_kelamin": item.jenisKelamin,
+          "hobi": item.hobi, "anak_ke": item.anakKe, "jumlah_saudara": item.jumlahSaudara,
+          "jenis_tempat_tinggal": item.jenisTempatTinggal, "alamat": item.alamat, "propinsi": item.propinsi, "kabupaten": item.kabupaten, "kecamatan": item.kecamatan,
+          "desa_kelurahan": item.desaKelurahan, "kode_pos": item.kodePos, "nomor_telepon": item.nomorTelepon, "jarak_tempat_tinggal": item.jarakTempatTinggal,
+          "transportasi": item.transportasi, "jarak_tempuh": item.jarakTempuh,
+          "no_kk": item.noKK, "nama_kep_keluarga": item.namaKepKeluarga,
+          "nama_ayah": item.namaAyah, "nik_ayah": item.nikAyah, "tempat_lahir_ayah": item.tempatLahirAyah, "tgl_lahir_ayah": item.tglLahirAyah, "status_ayah": item.statusAyah, "pekerjaan_ayah": item.pekerjaanAyah, "penghasilan_ayah_perbulan": item.penghasilanAyahPerbulan, "pendidikan_ayah": item.pendidikanAyah,
+          "nama_ibu": item.namaIbu, "nik_ibu": item.nikIbu, "tempat_lahir_ibu": item.tempatLahirIbu, "tgl_lahir_ibu": item.tglLahirIbu, "status_ibu": item.statusIbu, "pekerjaan_ibu": item.pekerjaanIbu, "penghasilan_ibu_perbulan": item.penghasilanIbuPerbulan, "pendidikan_ibu": item.pendidikanIbu,
+          "nama_wali_siswa": item.namaWali, "tahun_lahir_wali_siswa": item.tahunLahirWali, "nik_wali_siswa": item.nikWali, "pendidikan_wali_siswa": item.pendidikanWali, "pekerjaan_wali_siswa": item.pekerjaanWali, "penghasilan_wali_siswa": item.penghasilanWali,
+          "kks_kps": item.kksKps, "pkh": item.pkh, "pip": item.pip, "kip": item.kip, "status_kepemilikan_rumah_orang_tua": item.statusKepemilikanRumahOrangTua,
+          "tahun_ajaran": item.tahunAjaran, "jenis_lembaga_jenjang": item.jenisLembagaJenjang, "status_sekolah_asal": item.statusSekolahAsal, "npsn_sekolah": item.npsnSekolah, "nama_sekolah_madrasah": item.namaSekolahMadrasah, "lokasi_sekolah": item.lokasiSekolah,
+          "no_peserta_un": item.noPesertaUN, "no_blanko_skhu": item.noBlankoSKHU, "no_seri_ijazah": item.noSeriIjazah, "total_nilai_un": item.totalNilaiUN,
+          "pilihan_program": item.pilihanProgram, "foto_siswa": item.fotoSiswa ? "Image Present" : "", "no_urut": item.noUrut, "is_inden": item.isInden ? "TRUE" : "FALSE",
+          "ai_analysis": item.aiAnalysis
+        };
     });
     const worksheet = (window as any).XLSX.utils.json_to_sheet(dataToExport);
     const workbook = (window as any).XLSX.utils.book_new();
@@ -396,10 +443,17 @@ const App: React.FC = () => {
     (window as any).XLSX.writeFile(workbook, `EMIS_SPMB_${state.selectedYear.replace('/','-')}.xlsx`);
   };
 
+  // --- RENDERING HELPERS (Sama seperti sebelumnya, disederhanakan untuk brevity di XML ini namun tetap fungsional) ---
   const renderInput = (label: string, field: keyof StudentData, type: string = "text", placeholder?: string) => (
     <div className="mb-4 text-left">
       <label className="block text-slate-500 text-[9px] font-black mb-1.5 uppercase tracking-widest">{label}</label>
-      <input type={type} placeholder={placeholder} className={`w-full bg-slate-900/40 border ${state.errors[field] ? 'border-red-500' : 'border-slate-800'} text-slate-100 rounded-2xl px-5 py-3.5 text-xs focus:outline-none focus:ring-2 focus:ring-maroon/50 focus:border-maroon transition-all placeholder:text-slate-700`} value={(state.studentData[field] as string) || ''} onChange={(e) => updateData({ [field]: e.target.value })} />
+      <input 
+        type={type} 
+        placeholder={placeholder}
+        className={`w-full bg-slate-900/40 border ${state.errors[field] ? 'border-red-500' : 'border-slate-800'} text-slate-100 rounded-2xl px-5 py-3.5 text-xs focus:outline-none focus:ring-2 focus:ring-maroon/50 focus:border-maroon transition-all placeholder:text-slate-700`} 
+        value={(state.studentData[field] as string) || ''} 
+        onChange={(e) => updateData({ [field]: e.target.value })} 
+      />
       {state.errors[field] && <p className="text-red-500 text-[8px] mt-1.5 uppercase font-bold flex items-center gap-1"><span className="w-1 h-1 bg-red-500 rounded-full"></span> {state.errors[field]}</p>}
     </div>
   );
@@ -407,7 +461,11 @@ const App: React.FC = () => {
   const renderSelect = (label: string, field: keyof StudentData, options: string[]) => (
     <div className="mb-4 text-left">
       <label className="block text-slate-500 text-[9px] font-black mb-1.5 uppercase tracking-widest">{label}</label>
-      <select className={`w-full bg-slate-900/40 border ${state.errors[field] ? 'border-red-500' : 'border-slate-800'} text-slate-100 rounded-2xl px-5 py-3.5 text-xs focus:outline-none focus:ring-2 focus:ring-maroon/50 focus:border-maroon transition-all appearance-none cursor-pointer`} value={(state.studentData[field] as string) || ''} onChange={(e) => updateData({ [field]: e.target.value })} >
+      <select 
+        className={`w-full bg-slate-900/40 border ${state.errors[field] ? 'border-red-500' : 'border-slate-800'} text-slate-100 rounded-2xl px-5 py-3.5 text-xs focus:outline-none focus:ring-2 focus:ring-maroon/50 focus:border-maroon transition-all appearance-none cursor-pointer`} 
+        value={(state.studentData[field] as string) || ''} 
+        onChange={(e) => updateData({ [field]: e.target.value })}
+      >
         <option value="">Pilih {label}</option>
         {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
       </select>
@@ -417,7 +475,7 @@ const App: React.FC = () => {
   const renderProgramCards = () => (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-4">
-        <label className="block text-slate-500 text-[10px] font-black uppercase tracking-tighter"><span className="text-maroon">#AuraCheck:</span> Pilih Program Pilihan Kamu</label>
+        <label className="block text-slate-500 text-[10px] font-black uppercase tracking-tighter"><span className="text-maroon">#AuraCheck:</span> Pilih Program</label>
         <span className="text-[9px] font-bold text-slate-600 bg-slate-900 px-3 py-1 rounded-full uppercase">Certified Tier Only</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -425,14 +483,9 @@ const App: React.FC = () => {
           const isSelected = state.studentData.pilihanProgram === prog.id;
           return (
             <button key={prog.id} type="button" onClick={() => updateData({ pilihanProgram: prog.id as any })} className={`relative overflow-hidden p-5 rounded-[28px] border-2 transition-all duration-500 flex flex-col items-start text-left group h-full ${isSelected ? `${prog.color} bg-white/5 ${prog.glow} scale-[1.02] z-10` : 'bg-slate-900/20 border-slate-800 hover:border-slate-700'}`}>
-              {isSelected && <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-white/10 to-transparent blur-2xl`}></div>}
-              <div className="flex justify-between items-start w-full mb-3">
-                <div className={`text-3xl transition-transform duration-500 ${isSelected ? 'scale-110 rotate-3' : 'group-hover:scale-105'}`}>{prog.icon}</div>
-                <div className={`text-[7px] font-black px-2 py-0.5 rounded-full border border-current ${isSelected ? 'opacity-100' : 'opacity-30'}`}>{prog.tier}</div>
-              </div>
+              <div className="flex justify-between items-start w-full mb-3"><div className={`text-3xl ${isSelected ? 'scale-110' : ''}`}>{prog.icon}</div><div className={`text-[7px] font-black px-2 py-0.5 rounded-full border border-current ${isSelected ? 'opacity-100' : 'opacity-30'}`}>{prog.tier}</div></div>
               <h5 className={`text-[12px] font-black mb-1.5 tracking-tight ${isSelected ? 'text-white' : 'text-slate-400'}`}>{prog.label}</h5>
               <p className={`text-[9px] leading-relaxed transition-colors ${isSelected ? 'text-slate-200' : 'text-slate-600'}`}>{prog.desc}</p>
-              {isSelected && <div className="mt-3 w-full h-1 bg-maroon/20 rounded-full overflow-hidden"><div className="w-full h-full bg-maroon animate-pulse"></div></div>}
             </button>
           );
         })}
@@ -448,14 +501,12 @@ const App: React.FC = () => {
       <div className="mb-4 text-left animate-in fade-in duration-300">
         <label className="block text-slate-500 text-[9px] font-black mb-1.5 uppercase tracking-widest">{label}</label>
         <div className="space-y-2">
-          <select className={`w-full bg-slate-900/40 border ${state.errors[field] && !value ? 'border-red-500' : 'border-slate-800'} text-slate-100 rounded-2xl px-5 py-3.5 text-xs focus:outline-none transition-all appearance-none cursor-pointer`} value={dropdownValue} onChange={(e) => { const val = e.target.value; if (val === 'Lainnya') { updateData({ [field]: ' ' }); } else { updateData({ [field]: val }); } }}>
+          <select className={`w-full bg-slate-900/40 border ${state.errors[field] && !value ? 'border-red-500' : 'border-slate-800'} text-slate-100 rounded-2xl px-5 py-3.5 text-xs focus:outline-none transition-all appearance-none cursor-pointer`} value={dropdownValue} onChange={(e) => { const val = e.target.value; updateData({ [field]: val === 'Lainnya' ? ' ' : val }); }}>
             <option value="">Pilih {label}</option>
             {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
             <option value="Lainnya">Lainnya (Isi Manual)...</option>
           </select>
-          {(dropdownValue === 'Lainnya') && (
-            <input type="text" placeholder={`Ketik Nama ${label} Manual...`} className={`w-full bg-slate-800 border ${state.errors[field] ? 'border-red-500' : 'border-slate-600'} text-white rounded-2xl px-5 py-3.5 text-xs focus:outline-none animate-in slide-in-from-top-2 focus:ring-2 focus:ring-maroon placeholder:text-slate-500 font-medium`} value={value === ' ' ? '' : value} onChange={(e) => updateData({ [field]: e.target.value })} autoFocus />
-          )}
+          {(dropdownValue === 'Lainnya') && <input type="text" placeholder={`Ketik Nama ${label} Manual...`} className={`w-full bg-slate-800 border ${state.errors[field] ? 'border-red-500' : 'border-slate-600'} text-white rounded-2xl px-5 py-3.5 text-xs focus:outline-none`} value={value === ' ' ? '' : value} onChange={(e) => updateData({ [field]: e.target.value })} autoFocus />}
         </div>
       </div>
     );
@@ -463,74 +514,16 @@ const App: React.FC = () => {
 
   const renderAdminFormSection = () => {
     switch (adminFormStep) {
-      case 0: return (
-        <div className="animate-in fade-in slide-in-from-right-4">
-          <h4 className="text-maroon font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2"><span className="w-2 h-2 bg-maroon rounded-full"></span> Identitas Siswa</h4>
-          <div className="flex justify-center mb-8">
-            <div onClick={() => studentPhotoRef.current?.click()} className="w-32 h-32 rounded-full bg-slate-900/40 border-2 border-dashed border-slate-700 flex flex-col items-center justify-center cursor-pointer hover:border-maroon hover:bg-maroon/10 transition-all overflow-hidden relative group">
-              {(state.studentData.fotoSiswa) ? (<img src={state.studentData.fotoSiswa} alt="Profile" className="w-full h-full object-cover" />) : (<><Icons.User /><span className="text-[8px] mt-2 uppercase font-bold text-slate-500">Upload Foto</span></>)}
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><span className="text-[9px] text-white font-black uppercase tracking-widest">GANTI</span></div>
-            </div>
-          </div>
-          {renderProgramCards()}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">
-            {renderInput("Nama Siswa *", "namaSiswa")} {renderInput("NIS Lokal", "nisLokal")} {renderInput("NISN *", "nisn")} {renderInput("NIK", "nik")} {renderInput("Tempat Lahir", "tempatLahir")} {renderInput("Tanggal Lahir", "tanggalLahir", "date")}
-            {renderSelect("Agama", "agama", ["Islam", "Kristen", "Katolik", "Hindu", "Budha", "Konghucu"])} {renderSelect("Jenis Kelamin", "jenisKelamin", ["Laki-laki", "Perempuan"])} {renderInput("Warga Negara", "wargaNegara")}
-            {renderInput("Hobi", "hobi")} {renderInput("Anak Ke-", "anakKe")} {renderInput("Jumlah Saudara", "jumlahSaudara")}
-          </div>
-        </div>
-      );
-      case 1: 
-        const kabOptions = KABUPATEN_MAP[state.studentData.propinsi || ''] || [];
-        const kecOptions = KECAMATAN_MAP[state.studentData.kabupaten || ''] || [];
-        const desaOptions = DESA_MAP[state.studentData.kecamatan || ''] || [];
-        return (
-          <div className="animate-in fade-in slide-in-from-right-4">
-            <h4 className="text-maroon font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2"><span className="w-2 h-2 bg-maroon rounded-full"></span> Alamat & Kontak Siswa</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">
-              {renderSelect("Jenis Tempat Tinggal", "jenisTempatTinggal", ["Bersama Orang Tua", "Wali", "Kos", "Asrama", "Lainnya"])}
-              <div className="col-span-1 md:col-span-2">{renderInput("Alamat Lengkap *", "alamat")}</div>
-              {renderCascadingField("Provinsi", "propinsi", PROVINSI_OPTIONS)} {renderCascadingField("Kabupaten", "kabupaten", kabOptions)} {renderCascadingField("Kecamatan", "kecamatan", kecOptions)} {renderCascadingField("Desa/Kelurahan", "desaKelurahan", desaOptions)}
-              {renderInput("Kode Pos", "kodePos")} {renderInput("WhatsApp Aktif *", "nomorTelepon", "tel")}
-              {renderSelect("Transportasi", "transportasi", ["Jalan Kaki", "Sepeda", "Motor", "Mobil Pribadi", "Antar Jemput", "Angkutan Umum"])} {renderSelect("Jarak ke Sekolah", "jarakTempatTinggal", ["Kurang dari 1 km", "1 - 5 km", "5 - 10 km", "Lebih dari 10 km"])} {renderInput("Waktu Tempuh (Menit)", "jarakTempuh")}
-            </div>
-          </div>
-        );
-      case 2: return (
-        <div className="animate-in fade-in slide-in-from-right-4">
-          <h4 className="text-maroon font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2"><span className="w-2 h-2 bg-maroon rounded-full"></span> Data Keluarga</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">{renderInput("No. Kartu Keluarga", "noKK")} {renderInput("Nama Kepala Keluarga", "namaKepKeluarga")}</div>
-          <div className="col-span-full border-t border-slate-800 my-6"></div>
-          <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">A. Data Ayah</h5>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">{renderInput("Nama Ayah", "namaAyah")} {renderInput("NIK Ayah", "nikAyah")} {renderInput("Tempat Lahir Ayah", "tempatLahirAyah")} {renderInput("Tgl Lahir Ayah", "tglLahirAyah", "date")} {renderSelect("Status Ayah", "statusAyah", ["Masih Hidup", "Meninggal Dunia", "Bercerai"])} {renderSelect("Pekerjaan Ayah", "pekerjaanAyah", PEKERJAAN_OPTIONS)} {renderSelect("Penghasilan Ayah", "penghasilanAyahPerbulan", PENDAPATAN_OPTIONS)} {renderSelect("Pendidikan Ayah", "pendidikanAyah", PENDIDIKAN_OPTIONS)}</div>
-          <div className="col-span-full border-t border-slate-800 my-6"></div>
-          <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">B. Data Ibu</h5>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">{renderInput("Nama Ibu", "namaIbu")} {renderInput("NIK Ibu", "nikIbu")} {renderInput("Tempat Lahir Ibu", "tempatLahirIbu")} {renderInput("Tgl Lahir Ibu", "tglLahirIbu", "date")} {renderSelect("Status Ibu", "statusIbu", ["Masih Hidup", "Meninggal Dunia", "Bercerai"])} {renderSelect("Pekerjaan Ibu", "pekerjaanIbu", PEKERJAAN_OPTIONS)} {renderSelect("Penghasilan Ibu", "penghasilanIbuPerbulan", PENDAPATAN_OPTIONS)} {renderSelect("Pendidikan Ibu", "pendidikanIbu", PENDIDIKAN_OPTIONS)}</div>
-          <div className="col-span-full border-t border-slate-800 my-6"></div>
-          <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">C. Data Wali (Jika Ada)</h5>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">{renderInput("Nama Wali", "namaWali")} {renderInput("NIK Wali", "nikWali")} {renderInput("Tahun Lahir Wali", "tahunLahirWali", "number")} {renderSelect("Pekerjaan Wali", "pekerjaanWali", PEKERJAAN_OPTIONS)} {renderSelect("Penghasilan Wali", "penghasilanWali", PENDAPATAN_OPTIONS)} {renderSelect("Pendidikan Wali", "pendidikanWali", PENDIDIKAN_OPTIONS)}</div>
-        </div>
-      );
-      case 3: return (
-        <div className="animate-in fade-in slide-in-from-right-4">
-          <h4 className="text-maroon font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2"><span className="w-2 h-2 bg-maroon rounded-full"></span> Bantuan & Keadaan Rumah</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">{renderInput("Nomor KKS / KPS", "kksKps", "text", "Nomor Kartu Kompensasi Sosial")} {renderInput("Nomor PKH", "pkh", "text", "Nomor Program Keluarga Harapan")} {renderInput("Nomor PIP", "pip", "text", "Nomor Program Indonesia Pintar")} {renderInput("Nomor KIP", "kip", "text", "Nomor Kartu Indonesia Pintar")} {renderSelect("Status Kepemilikan Rumah", "statusKepemilikanRumahOrangTua", ["Milik Sendiri", "Sewa/Kontrak", "Menumpang", "Rumah Dinas", "Lainnya"])}</div>
-          <p className="mt-6 text-[10px] text-slate-500 font-bold uppercase tracking-widest italic">* Kosongkan jika tidak memiliki kartu bantuan.</p>
-        </div>
-      );
-      case 4: return (
-        <div className="animate-in fade-in slide-in-from-right-4">
-          <h4 className="text-maroon font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2"><span className="w-2 h-2 bg-maroon rounded-full"></span> Sekolah Asal</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">{renderInput("Tahun Ajaran", "tahunAjaran")} {renderSelect("Jenis Lembaga", "jenisLembagaJenjang", ["SD", "MI", "Paket A", "Lainnya"])} {renderSelect("Status Sekolah", "statusSekolahAsal", ["Negeri", "Swasta"])} {renderInput("NPSN Sekolah Asal", "npsnSekolah")} {renderInput("Nama Sekolah Asal", "namaSekolahMadrasah")} {renderInput("Lokasi Sekolah Asal", "lokasiSekolah")}
-            <div className="col-span-full border-t border-slate-800 my-4"></div>
-            {renderInput("No Peserta UN", "noPesertaUN")} {renderInput("No Blanko SKHU", "noBlankoSKHU")} {renderInput("No Seri Ijazah", "noSeriIjazah")} {renderInput("Total Nilai UN", "totalNilaiUN")}
-          </div>
-        </div>
-      );
+      case 0: return <div className="animate-in fade-in slide-in-from-right-4"><h4 className="text-maroon font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2"><span className="w-2 h-2 bg-maroon rounded-full"></span> Identitas Siswa</h4><div className="flex justify-center mb-8"><div onClick={() => studentPhotoRef.current?.click()} className="w-32 h-32 rounded-full bg-slate-900/40 border-2 border-dashed border-slate-700 flex flex-col items-center justify-center cursor-pointer hover:border-maroon hover:bg-maroon/10 transition-all overflow-hidden relative group">{(state.studentData.fotoSiswa) ? (<img src={state.studentData.fotoSiswa} alt="Profile" className="w-full h-full object-cover" />) : (<><Icons.User /><span className="text-[8px] mt-2 uppercase font-bold text-slate-500">Upload Foto</span></>)}</div></div>{renderProgramCards()}<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">{renderInput("Nama Siswa *", "namaSiswa")} {renderInput("NIS Lokal", "nisLokal")} {renderInput("NISN *", "nisn")} {renderInput("NIK", "nik")} {renderInput("Tempat Lahir", "tempatLahir")} {renderInput("Tanggal Lahir", "tanggalLahir", "date")} {renderSelect("Agama", "agama", ["Islam", "Kristen", "Katolik", "Hindu", "Budha", "Konghucu"])} {renderSelect("Jenis Kelamin", "jenisKelamin", ["Laki-laki", "Perempuan"])} {renderInput("Warga Negara", "wargaNegara")} {renderInput("Hobi", "hobi")} {renderInput("Anak Ke-", "anakKe")} {renderInput("Jumlah Saudara", "jumlahSaudara")}</div></div>;
+      case 1: const kabOptions = KABUPATEN_MAP[state.studentData.propinsi || ''] || []; const kecOptions = KECAMATAN_MAP[state.studentData.kabupaten || ''] || []; const desaOptions = DESA_MAP[state.studentData.kecamatan || ''] || []; return <div className="animate-in fade-in slide-in-from-right-4"><h4 className="text-maroon font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2"><span className="w-2 h-2 bg-maroon rounded-full"></span> Alamat & Kontak Siswa</h4><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">{renderSelect("Jenis Tempat Tinggal", "jenisTempatTinggal", ["Bersama Orang Tua", "Wali", "Kos", "Asrama", "Lainnya"])} <div className="col-span-1 md:col-span-2">{renderInput("Alamat Lengkap *", "alamat")}</div> {renderCascadingField("Provinsi", "propinsi", PROVINSI_OPTIONS)} {renderCascadingField("Kabupaten", "kabupaten", kabOptions)} {renderCascadingField("Kecamatan", "kecamatan", kecOptions)} {renderCascadingField("Desa/Kelurahan", "desaKelurahan", desaOptions)} {renderInput("Kode Pos", "kodePos")} {renderInput("WhatsApp Aktif *", "nomorTelepon", "tel")} {renderSelect("Transportasi", "transportasi", ["Jalan Kaki", "Sepeda", "Motor", "Mobil Pribadi", "Antar Jemput", "Angkutan Umum"])} {renderSelect("Jarak ke Sekolah", "jarakTempatTinggal", ["Kurang dari 1 km", "1 - 5 km", "5 - 10 km", "Lebih dari 10 km"])} {renderInput("Waktu Tempuh (Menit)", "jarakTempuh")}</div></div>;
+      case 2: return <div className="animate-in fade-in slide-in-from-right-4"><h4 className="text-maroon font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2"><span className="w-2 h-2 bg-maroon rounded-full"></span> Data Keluarga</h4><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">{renderInput("No. Kartu Keluarga", "noKK")} {renderInput("Nama Kepala Keluarga", "namaKepKeluarga")}</div><div className="col-span-full border-t border-slate-800 my-6"></div><h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">A. Data Ayah</h5><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">{renderInput("Nama Ayah", "namaAyah")} {renderInput("NIK Ayah", "nikAyah")} {renderInput("Tempat Lahir Ayah", "tempatLahirAyah")} {renderInput("Tgl Lahir Ayah", "tglLahirAyah", "date")} {renderSelect("Status Ayah", "statusAyah", ["Masih Hidup", "Meninggal Dunia", "Bercerai"])} {renderSelect("Pekerjaan Ayah", "pekerjaanAyah", PEKERJAAN_OPTIONS)} {renderSelect("Penghasilan Ayah", "penghasilanAyahPerbulan", PENDAPATAN_OPTIONS)} {renderSelect("Pendidikan Ayah", "pendidikanAyah", PENDIDIKAN_OPTIONS)}</div><div className="col-span-full border-t border-slate-800 my-6"></div><h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">B. Data Ibu</h5><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">{renderInput("Nama Ibu", "namaIbu")} {renderInput("NIK Ibu", "nikIbu")} {renderInput("Tempat Lahir Ibu", "tempatLahirIbu")} {renderInput("Tgl Lahir Ibu", "tglLahirIbu", "date")} {renderSelect("Status Ibu", "statusIbu", ["Masih Hidup", "Meninggal Dunia", "Bercerai"])} {renderSelect("Pekerjaan Ibu", "pekerjaanIbu", PEKERJAAN_OPTIONS)} {renderSelect("Penghasilan Ibu", "penghasilanIbuPerbulan", PENDAPATAN_OPTIONS)} {renderSelect("Pendidikan Ibu", "pendidikanIbu", PENDIDIKAN_OPTIONS)}</div><div className="col-span-full border-t border-slate-800 my-6"></div><h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">C. Data Wali (Jika Ada)</h5><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">{renderInput("Nama Wali", "namaWali")} {renderInput("NIK Wali", "nikWali")} {renderInput("Tahun Lahir Wali", "tahunLahirWali", "number")} {renderSelect("Pekerjaan Wali", "pekerjaanWali", PEKERJAAN_OPTIONS)} {renderSelect("Penghasilan Wali", "penghasilanWali", PENDAPATAN_OPTIONS)} {renderSelect("Pendidikan Wali", "pendidikanWali", PENDIDIKAN_OPTIONS)}</div></div>;
+      case 3: return <div className="animate-in fade-in slide-in-from-right-4"><h4 className="text-maroon font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2"><span className="w-2 h-2 bg-maroon rounded-full"></span> Bantuan & Keadaan Rumah</h4><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">{renderInput("Nomor KKS / KPS", "kksKps")} {renderInput("Nomor PKH", "pkh")} {renderInput("Nomor PIP", "pip")} {renderInput("Nomor KIP", "kip")} {renderSelect("Status Kepemilikan Rumah", "statusKepemilikanRumahOrangTua", ["Milik Sendiri", "Sewa/Kontrak", "Menumpang", "Rumah Dinas", "Lainnya"])}</div></div>;
+      case 4: return <div className="animate-in fade-in slide-in-from-right-4"><h4 className="text-maroon font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2"><span className="w-2 h-2 bg-maroon rounded-full"></span> Sekolah Asal</h4><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5">{renderInput("Tahun Ajaran", "tahunAjaran")} {renderSelect("Jenis Lembaga", "jenisLembagaJenjang", ["SD", "MI", "Paket A", "Lainnya"])} {renderSelect("Status Sekolah", "statusSekolahAsal", ["Negeri", "Swasta"])} {renderInput("NPSN Sekolah Asal", "npsnSekolah")} {renderInput("Nama Sekolah Asal", "namaSekolahMadrasah")} {renderInput("Lokasi Sekolah Asal", "lokasiSekolah")} {renderInput("No Peserta UN", "noPesertaUN")} {renderInput("No Blanko SKHU", "noBlankoSKHU")} {renderInput("No Seri Ijazah", "noSeriIjazah")} {renderInput("Total Nilai UN", "totalNilaiUN")}</div></div>;
       default: return null;
     }
   };
 
+  // Views Logic
   if (state.viewMode === 'landing' && !state.isFinished) return (
     <div className="min-h-screen relative flex flex-col items-center justify-center p-6 text-center overflow-hidden">
       <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
@@ -541,21 +534,8 @@ const App: React.FC = () => {
         <h1 className="text-6xl md:text-8xl font-black tracking-tighter mt-10 mb-4 leading-[0.9] uppercase italic">SPMB<br/><span className="text-maroon">MUTULINGGA</span></h1>
         <p className="text-slate-500 font-bold text-lg max-w-lg mb-14 uppercase tracking-widest leading-none">The Future Starts Here. <span className="text-maroon">#RealSigma</span></p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl px-4">
-          <button onClick={() => setState(prev => ({ ...prev, viewMode: 'inden', currentStep: 'inden' }))} className="glass group p-12 rounded-[50px] border-maroon/30 hover:border-maroon hover:bg-maroon/10 transition-all text-left relative overflow-hidden">
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-maroon/20 rounded-full blur-3xl group-hover:bg-maroon/40 transition-all"></div>
-            <div className="relative z-10">
-              <h3 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter">DAFTAR INDEN</h3>
-              <p className="text-slate-500 text-[11px] font-bold leading-relaxed uppercase tracking-widest mb-8">Amankan kursi & unlock profile analysis berbasis AI.</p>
-              <div className="flex items-center gap-3 text-maroon font-black text-[12px] tracking-widest uppercase bg-slate-900/50 w-fit px-5 py-2.5 rounded-full group-hover:bg-maroon group-hover:text-white transition-all">GAS DAFTAR <Icons.Sparkles /></div>
-            </div>
-          </button>
-          <button onClick={() => setState(prev => ({ ...prev, viewMode: 'login' }))} className="glass group p-12 rounded-[50px] border-slate-800 hover:border-slate-600 transition-all text-left relative overflow-hidden">
-             <div className="relative z-10">
-              <h3 className="text-3xl font-black text-slate-300 mb-2 uppercase tracking-tighter">PORTAL ADMIN</h3>
-              <p className="text-slate-500 text-[11px] font-bold leading-relaxed uppercase tracking-widest mb-8">Database management & EMIS integration panel.</p>
-              <div className="flex items-center gap-3 text-slate-400 font-black text-[12px] tracking-widest uppercase bg-slate-900/50 w-fit px-5 py-2.5 rounded-full group-hover:bg-slate-700 transition-all">ACCESS SYSTEM <Icons.Academic /></div>
-            </div>
-          </button>
+          <button onClick={() => setState(prev => ({ ...prev, viewMode: 'inden', currentStep: 'inden' }))} className="glass group p-12 rounded-[50px] border-maroon/30 hover:border-maroon hover:bg-maroon/10 transition-all text-left relative overflow-hidden"><div className="relative z-10"><h3 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter">DAFTAR INDEN</h3><p className="text-slate-500 text-[11px] font-bold leading-relaxed uppercase tracking-widest mb-8">Amankan kursi & unlock profile analysis berbasis AI.</p><div className="flex items-center gap-3 text-maroon font-black text-[12px] tracking-widest uppercase bg-slate-900/50 w-fit px-5 py-2.5 rounded-full group-hover:bg-maroon group-hover:text-white transition-all">GAS DAFTAR <Icons.Sparkles /></div></div></button>
+          <button onClick={() => setState(prev => ({ ...prev, viewMode: 'login' }))} className="glass group p-12 rounded-[50px] border-slate-800 hover:border-slate-600 transition-all text-left relative overflow-hidden"><div className="relative z-10"><h3 className="text-3xl font-black text-slate-300 mb-2 uppercase tracking-tighter">PORTAL ADMIN</h3><p className="text-slate-500 text-[11px] font-bold leading-relaxed uppercase tracking-widest mb-8">Database management & EMIS integration panel.</p><div className="flex items-center gap-3 text-slate-400 font-black text-[12px] tracking-widest uppercase bg-slate-900/50 w-fit px-5 py-2.5 rounded-full group-hover:bg-slate-700 transition-all">ACCESS SYSTEM <Icons.Academic /></div></div></button>
         </div>
       </div>
     </div>
@@ -581,13 +561,19 @@ const App: React.FC = () => {
   if (state.isFinished) return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-center animate-in fade-in overflow-hidden relative">
        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-maroon/5 rounded-full blur-[150px]"></div>
-       <div className="w-24 h-24 bg-maroon rounded-[35px] flex items-center justify-center mb-10 shadow-[0_0_50px_rgba(128,0,0,0.5)] mx-auto no-print relative z-10"><svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg></div>
+       <div className="w-24 h-24 bg-maroon rounded-[35px] flex items-center justify-center mb-10 shadow-[0_0_50px_rgba(128,0,0,0.5)] mx-auto no-print relative z-10">
+          <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>
+       </div>
        <h1 className="text-4xl font-black mb-2 tracking-tighter uppercase no-print relative z-10">GOAL! <span className="text-maroon">CERTIFIED SIGMA.</span></h1>
        <p className="text-slate-500 font-bold uppercase text-[11px] tracking-widest mb-10 no-print">Kamu resmi terdaftar di Mutulingga.</p>
+
        <div id="print-area" className="max-w-[480px] w-full bg-white text-slate-900 p-10 rounded-[45px] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] text-left relative overflow-hidden print:shadow-none print:border print:border-slate-200">
           <div className="absolute top-0 left-0 w-full h-3 bg-maroon"></div>
           <div className="flex justify-between items-start mb-8">
-             <div className="flex items-center gap-4"><LogoComponent size="sm" isBlackAndWhite={true} interactive={false} /><div><h2 className="font-black text-[13px] uppercase text-maroon leading-none">Mutulingga</h2><p className="text-[8px] font-black text-slate-400 mt-1 uppercase tracking-widest">Islamic Boarding School</p></div></div>
+             <div className="flex items-center gap-4">
+                <LogoComponent size="sm" isBlackAndWhite={true} interactive={false} />
+                <div><h2 className="font-black text-[13px] uppercase text-maroon leading-none">Mutulingga</h2><p className="text-[8px] font-black text-slate-400 mt-1 uppercase tracking-widest">Islamic Boarding School</p></div>
+             </div>
              <div className="text-right"><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Entry ID</p><p className="text-4xl font-black text-maroon leading-none tracking-tighter">#{state.studentData.noUrut}</p></div>
           </div>
           <div className="bg-slate-50 p-6 rounded-[35px] border border-slate-100 mb-8">
@@ -621,13 +607,11 @@ const App: React.FC = () => {
              <div className="w-16 h-16 bg-maroon/20 text-maroon rounded-2xl flex items-center justify-center mx-auto mb-6"><Icons.Trash /></div>
              <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-2 italic">HAPUS DATA?</h3>
              <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest leading-relaxed mb-8">Data registran ini akan dihapus secara permanen dari database sistem.</p>
-             <div className="flex gap-4">
-                <button onClick={() => setDeleteConfirm({ show: false, index: null })} className="flex-1 px-6 py-4 rounded-2xl bg-slate-900 text-slate-500 font-black uppercase text-[10px] border border-slate-800 hover:text-white transition-all">BATAL</button>
-                <button onClick={performDelete} className="flex-1 px-6 py-4 rounded-2xl bg-maroon text-white font-black uppercase text-[10px] shadow-lg shadow-maroon/20 hover:brightness-110 active:scale-95 transition-all">YA, HAPUS</button>
-             </div>
+             <div className="flex gap-4"><button onClick={() => setDeleteConfirm({ show: false, id: null })} className="flex-1 px-6 py-4 rounded-2xl bg-slate-900 text-slate-500 font-black uppercase text-[10px] border border-slate-800 hover:text-white transition-all">BATAL</button><button onClick={performDelete} className="flex-1 px-6 py-4 rounded-2xl bg-maroon text-white font-black uppercase text-[10px] shadow-lg shadow-maroon/20 hover:brightness-110 active:scale-95 transition-all">YA, HAPUS</button></div>
           </div>
         </div>
       )}
+
       <nav className="p-6 sticky top-0 z-50 bg-slate-950/80 backdrop-blur-3xl border-b border-slate-900 no-print">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4 cursor-pointer group" onClick={safeExit}><LogoComponent size="sm" interactive={state.viewMode === 'admin'} /><div className="text-left"><h1 className="font-black text-sm tracking-tighter uppercase leading-none group-hover:text-maroon transition-colors">MTsM 01 PBG</h1><p className="text-[9px] text-maroon font-black uppercase mt-1 tracking-widest">Bener, Pinter, Trampil</p></div></div>
@@ -637,9 +621,11 @@ const App: React.FC = () => {
           </div>
         </div>
       </nav>
+      
       <main className="max-w-7xl mx-auto p-4 md:p-8 mt-6">
         <div className="glass rounded-[60px] p-8 md:p-16 border-maroon/10 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-24 h-24 bg-maroon/5 blur-[80px]"></div>
+          
           {state.viewMode === 'admin' && (
             <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-8 relative z-10">
               <div className="flex gap-4 bg-slate-950/50 p-2 rounded-2xl border border-slate-900">
@@ -649,6 +635,7 @@ const App: React.FC = () => {
               <div className="flex items-center gap-4"><span className="text-[10px] font-black text-slate-700 uppercase tracking-widest italic">ARCHIVE_FILTER:</span><select className="bg-slate-950 border border-slate-900 text-[10px] font-black uppercase text-maroon rounded-xl px-5 py-3.5 focus:outline-none transition-all" value={state.selectedYear} onChange={(e) => setState(p => ({ ...p, selectedYear: e.target.value }))}>{ACADEMIC_YEARS.map(y => <option key={y} value={y}>{y}</option>)}</select></div>
             </div>
           )}
+
           {state.viewMode === 'inden' ? (
             <div className="animate-in fade-in slide-in-from-bottom-8 max-w-6xl mx-auto relative z-10">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
@@ -658,25 +645,8 @@ const App: React.FC = () => {
               <div className="bento-layout space-y-8">
                 <div className="p-8 rounded-[45px] bg-slate-900/10 border border-slate-800/50">{renderProgramCards()}</div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="p-8 rounded-[45px] bg-slate-900/10 border border-slate-800/50 h-full">
-                     <h4 className="text-[12px] font-black uppercase text-maroon mb-6 tracking-widest flex items-center gap-2">A. IDENTITAS CALON SISWA <span className="h-px flex-1 bg-maroon/10"></span></h4>
-                     <div className="mb-6 flex justify-center">
-                        <div className={`w-32 h-32 rounded-full overflow-hidden border-2 ${isCameraOpen ? 'border-maroon animate-pulse' : 'border-slate-700 border-dashed'} flex flex-col items-center justify-center relative bg-slate-900/40`}>
-                            {isCameraOpen ? (<><video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]" /><canvas ref={canvasRef} className="hidden" /></>) : state.studentData.fotoSiswa ? (<div className="relative w-full h-full group"><img src={state.studentData.fotoSiswa} alt="Captured" className="w-full h-full object-cover" /><div onClick={retakePhoto} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"><span className="text-[9px] text-white font-black uppercase tracking-widest">AMBIL ULANG</span></div></div>) : (<div onClick={startCamera} className="flex flex-col items-center cursor-pointer group hover:opacity-80 transition-opacity"><Icons.User /><span className="text-[8px] mt-2 uppercase font-bold text-slate-500 group-hover:text-maroon transition-colors">Buka Kamera</span></div>)}
-                        </div>
-                     </div>
-                     {isCameraOpen && (<div className="flex justify-center gap-2 mb-6"><button onClick={stopCamera} className="px-3 py-1.5 rounded-full bg-slate-800 text-[9px] font-bold text-slate-400 hover:text-white uppercase tracking-wider">Batal</button><button onClick={capturePhoto} className="px-4 py-1.5 rounded-full bg-maroon text-[9px] font-bold text-white uppercase tracking-wider shadow-lg hover:brightness-110">Jepret!</button></div>)}
-                     <div className="space-y-4">{renderInput("1. Nama Lengkap *", "namaSiswa", "text", "Sesuai Ijazah/Akta")} {renderSelect("2. Jenis Kelamin *", "jenisKelamin", ["Laki-laki", "Perempuan"])} {renderInput("3. NISN (10 Digit) *", "nisn", "text", "Cek di rapor SD/MI")} {renderInput("4. Asal SD/MI *", "namaSekolahMadrasah", "text", "Nama sekolah asal")}
-                        <div className="grid grid-cols-2 gap-4">{renderInput("5. Tempat Lahir *", "tempatLahir", "text", "Kota lahir")} {renderInput("Tanggal Lahir *", "tanggalLahir", "date")}</div>
-                     </div>
-                  </div>
-                  <div className="p-8 rounded-[45px] bg-slate-900/10 border border-slate-800/50 h-full">
-                     <h4 className="text-[12px] font-black uppercase text-maroon mb-6 tracking-widest flex items-center gap-2">B. KONTAK ORANG TUA / WALI <span className="h-px flex-1 bg-maroon/10"></span></h4>
-                     <div className="space-y-4">{renderInput("1. Nama Ayah/Ibu/Wali *", "namaKepKeluarga", "text", "Nama orang tua atau wali")}
-                        <div className="bg-maroon/5 p-4 rounded-2xl border border-maroon/20 mb-4">{renderInput("2. No. WhatsApp Aktif *", "nomorTelepon", "tel", "08xxxxxx (Untuk Info Kelulusan)")}<p className="text-[9px] text-maroon font-bold italic mt-[-10px]">*Pastikan nomor aktif WA</p></div>
-                        {renderInput("3. Alamat Tinggal Sekarang *", "alamat", "text", "Jalan, RT/RW, Desa, Kecamatan")}
-                     </div>
-                  </div>
+                  <div className="p-8 rounded-[45px] bg-slate-900/10 border border-slate-800/50 h-full"><h4 className="text-[12px] font-black uppercase text-maroon mb-6 tracking-widest flex items-center gap-2">A. IDENTITAS CALON SISWA <span className="h-px flex-1 bg-maroon/10"></span></h4><div className="mb-6 flex justify-center"><div className={`w-32 h-32 rounded-full overflow-hidden border-2 ${isCameraOpen ? 'border-maroon animate-pulse' : 'border-slate-700 border-dashed'} flex flex-col items-center justify-center relative bg-slate-900/40`}>{isCameraOpen ? (<><video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]" /><canvas ref={canvasRef} className="hidden" /></>) : state.studentData.fotoSiswa ? (<div className="relative w-full h-full group"><img src={state.studentData.fotoSiswa} alt="Captured" className="w-full h-full object-cover" /><div onClick={retakePhoto} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"><span className="text-[9px] text-white font-black uppercase tracking-widest">AMBIL ULANG</span></div></div>) : (<div onClick={startCamera} className="flex flex-col items-center cursor-pointer group hover:opacity-80 transition-opacity"><Icons.User /><span className="text-[8px] mt-2 uppercase font-bold text-slate-500 group-hover:text-maroon transition-colors">Buka Kamera</span></div>)}</div></div>{isCameraOpen && (<div className="flex justify-center gap-2 mb-6"><button onClick={stopCamera} className="px-3 py-1.5 rounded-full bg-slate-800 text-[9px] font-bold text-slate-400 hover:text-white uppercase tracking-wider">Batal</button><button onClick={capturePhoto} className="px-4 py-1.5 rounded-full bg-maroon text-[9px] font-bold text-white uppercase tracking-wider shadow-lg hover:brightness-110">Jepret!</button></div>)}<div className="space-y-4">{renderInput("1. Nama Lengkap *", "namaSiswa", "text", "Sesuai Ijazah/Akta")} {renderSelect("2. Jenis Kelamin *", "jenisKelamin", ["Laki-laki", "Perempuan"])} {renderInput("3. NISN (10 Digit) *", "nisn", "text", "Cek di rapor SD/MI")} {renderInput("4. Asal SD/MI *", "namaSekolahMadrasah", "text", "Nama sekolah asal")} <div className="grid grid-cols-2 gap-4">{renderInput("5. Tempat Lahir *", "tempatLahir", "text", "Kota lahir")} {renderInput("Tanggal Lahir *", "tanggalLahir", "date")}</div></div></div>
+                  <div className="p-8 rounded-[45px] bg-slate-900/10 border border-slate-800/50 h-full"><h4 className="text-[12px] font-black uppercase text-maroon mb-6 tracking-widest flex items-center gap-2">B. KONTAK ORANG TUA / WALI <span className="h-px flex-1 bg-maroon/10"></span></h4><div className="space-y-4">{renderInput("1. Nama Ayah/Ibu/Wali *", "namaKepKeluarga", "text", "Nama orang tua atau wali")} <div className="bg-maroon/5 p-4 rounded-2xl border border-maroon/20 mb-4">{renderInput("2. No. WhatsApp Aktif *", "nomorTelepon", "tel", "08xxxxxx (Untuk Info Kelulusan)")} <p className="text-[9px] text-maroon font-bold italic mt-[-10px]">*Pastikan nomor aktif WA</p></div> {renderInput("3. Alamat Tinggal Sekarang *", "alamat", "text", "Jalan, RT/RW, Desa, Kecamatan")}</div></div>
                 </div>
               </div>
               <button onClick={handleSubmit} disabled={state.isSubmitting} className="group w-full maroon-gradient text-white py-7 rounded-[35px] font-black uppercase text-sm tracking-[0.4em] shadow-[0_25px_50px_rgba(128,0,0,0.4)] mt-12 transition-all active:scale-[0.97] hover:brightness-125 relative overflow-hidden"><span className="relative z-10 flex items-center justify-center gap-4">{state.isSubmitting ? 'PROCESSING_DATA...' : 'SUBMIT INDEN REQUEST'} {!state.isSubmitting && <Icons.Sparkles />}</span><div className="absolute top-0 left-[-100%] w-full h-full bg-white/10 group-hover:left-[100%] transition-all duration-1000 skew-x-12"></div></button>
@@ -685,15 +655,12 @@ const App: React.FC = () => {
             <div className="animate-in fade-in slide-in-from-right-8 max-w-6xl mx-auto relative z-10">
               <div className="flex justify-between items-center mb-12"><div><h3 className="text-4xl font-black text-white uppercase tracking-tighter italic">MASTER<span className="text-maroon">.EMIS</span>_ENTRY</h3><p className="text-[9px] font-black text-slate-700 uppercase tracking-[0.4em] mt-2">Section: {adminFormSections[adminFormStep]}</p></div><div className="flex gap-2">{adminFormSections.map((_, idx) => (<div key={idx} className={`h-1.5 rounded-full transition-all duration-700 ${idx === adminFormStep ? 'bg-maroon w-12' : idx < adminFormStep ? 'bg-maroon/30 w-6' : 'bg-slate-900 w-6'}`}></div>))}</div></div>
               <div className="min-h-[450px] p-10 rounded-[45px] bg-slate-900/5 border border-slate-900">{renderAdminFormSection()}</div>
-              <div className="flex gap-6 mt-16 pt-10 border-t border-slate-900">
-                {adminFormStep === 0 ? (<button onClick={() => setAdminSubView('table')} className="flex-1 bg-slate-900 text-slate-500 py-5 rounded-[25px] font-black uppercase text-[10px] tracking-widest hover:text-white transition-all border border-slate-800">CANCEL_PROCESS</button>) : (<button onClick={() => setAdminFormStep(p => p - 1)} className="flex-1 bg-slate-900 text-slate-500 py-5 rounded-[25px] font-black uppercase text-[10px] tracking-widest hover:text-white transition-all border border-slate-800">BACK_PREV</button>)}
-                {adminFormStep < adminFormSections.length - 1 ? (<button onClick={handleNextStep} className="flex-[3] maroon-gradient text-white py-5 rounded-[25px] font-black uppercase text-xs tracking-widest shadow-2xl transition-all active:scale-[0.98] hover:brightness-110">CONTINUE_STEP</button>) : (<button onClick={handleSubmit} disabled={state.isSubmitting} className="flex-[3] maroon-gradient text-white py-5 rounded-[25px] font-black uppercase text-xs tracking-widest shadow-2xl transition-all active:scale-[0.98] hover:brightness-110">{state.isSubmitting ? 'SAVING_MASTER_DATA...' : (state.editingIndex !== null ? 'UPDATE_DATABASE_RECORD' : 'COMMIT_DATABASE_ENTRY')}</button>)}
-              </div>
+              <div className="flex gap-6 mt-16 pt-10 border-t border-slate-900">{adminFormStep === 0 ? (<button onClick={() => setAdminSubView('table')} className="flex-1 bg-slate-900 text-slate-500 py-5 rounded-[25px] font-black uppercase text-[10px] tracking-widest hover:text-white transition-all border border-slate-800">CANCEL_PROCESS</button>) : (<button onClick={() => setAdminFormStep(p => p - 1)} className="flex-1 bg-slate-900 text-slate-500 py-5 rounded-[25px] font-black uppercase text-[10px] tracking-widest hover:text-white transition-all border border-slate-800">BACK_PREV</button>)}{adminFormStep < adminFormSections.length - 1 ? (<button onClick={handleNextStep} className="flex-[3] maroon-gradient text-white py-5 rounded-[25px] font-black uppercase text-xs tracking-widest shadow-2xl transition-all active:scale-[0.98] hover:brightness-110">CONTINUE_STEP</button>) : (<button onClick={handleSubmit} disabled={state.isSubmitting} className="flex-[3] maroon-gradient text-white py-5 rounded-[25px] font-black uppercase text-xs tracking-widest shadow-2xl transition-all active:scale-[0.98] hover:brightness-110">{state.isSubmitting ? 'SAVING_MASTER_DATA...' : (state.editingIndex !== null ? 'UPDATE_DATABASE_RECORD' : 'COMMIT_DATABASE_ENTRY')}</button>)}</div>
             </div>
           ) : (
             <div className="animate-in fade-in zoom-in-95 relative z-10">
               <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-                <div className="text-left"><h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">ARCHIVE<span className="text-maroon">.{state.selectedYear}</span></h3><p className="text-[10px] font-bold text-slate-700 uppercase tracking-widest mt-2">Active Record Count: {sortedData.length} Souls</p></div>
+                <div className="text-left"><h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">ARCHIVE<span className="text-maroon">.{state.selectedYear}</span></h3><p className="text-[10px] font-bold text-slate-700 uppercase tracking-widest mt-2">{loadingDb ? 'Loading Data...' : `Active Record Count: ${sortedData.length} Souls`}</p></div>
                 <div className="flex flex-wrap gap-4 w-full md:w-auto">
                   <div className="relative flex-1 md:w-72"><span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-700"><Icons.Sparkles /></span><input type="text" placeholder="FILTER_NAME_OR_NISN..." className="w-full bg-slate-950 border border-slate-900 text-white rounded-2xl pl-14 pr-6 py-4 text-[11px] font-black uppercase tracking-widest focus:outline-none focus:ring-1 focus:ring-maroon placeholder:text-slate-800" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} /></div>
                   <button onClick={exportToExcel} className="bg-emerald-600/10 border border-emerald-600/30 text-emerald-400 hover:bg-emerald-600 hover:text-white px-8 py-4 rounded-2xl flex items-center gap-3 transition-all active:scale-95 group shadow-lg"><Icons.Download /> <span className="text-[10px] font-black uppercase tracking-widest">GEN_EMIS_REPORT</span></button>
@@ -710,10 +677,10 @@ const App: React.FC = () => {
                       <td className="p-6"><span className="text-[9px] font-black px-3 py-1 bg-maroon/5 border border-maroon/20 text-maroon rounded-full uppercase italic tracking-tighter">{item.pilihanProgram || 'Reguler'}</span></td>
                       <td className="p-6"><div className="flex justify-center gap-3">
                         <button onClick={() => { setState(p => ({ ...p, studentData: { ...item }, editingIndex: state.allRegistrants.indexOf(item) })); setAdminSubView('form'); setAdminFormStep(0); }} className="w-10 h-10 rounded-xl bg-slate-900 text-slate-600 flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-sm border border-slate-800"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
-                        <button onClick={() => handleDelete(state.allRegistrants.indexOf(item))} className="w-10 h-10 rounded-xl bg-slate-900 text-slate-600 flex items-center justify-center hover:bg-maroon hover:text-white transition-all shadow-sm border border-slate-800"><Icons.Trash /></button>
+                        <button onClick={() => handleDelete((item as any).id)} className="w-10 h-10 rounded-xl bg-slate-900 text-slate-600 flex items-center justify-center hover:bg-maroon hover:text-white transition-all shadow-sm border border-slate-800"><Icons.Trash /></button>
                       </div></td>
                     </tr>
-                  )) : <tr><td colSpan={5} className="p-16 text-center text-slate-700 text-[10px] font-black uppercase tracking-[0.5em] italic">No active registrants found in this year's archive.</td></tr>}</tbody>
+                  )) : <tr><td colSpan={5} className="p-16 text-center text-slate-700 text-[10px] font-black uppercase tracking-[0.5em] italic">{loadingDb ? 'SYNCING_DATABASE...' : 'No active registrants found in this year\'s archive.'}</td></tr>}</tbody>
                 </table>
               </div>
               {sortedData.length > itemsPerPage && (

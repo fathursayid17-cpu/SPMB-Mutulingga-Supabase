@@ -1,15 +1,11 @@
-// types.ts
 
 export interface StudentData {
-  // Metadata (Wajib ada tanda tanya ? karena data baru belum punya ID)
-  id?: string;
-  created_at?: string;
-  isInden?: boolean;
-  
-  // Identitas Utama
-  tahunAjaran: string;
+  id?: string; // ID dari Database (UUID)
   noUrut: string;
+  isInden?: boolean;
+  pilihanProgram?: 'Reguler' | 'Tahfizh' | 'Coding' | 'Bilingual' | 'Fullday';
   namaSiswa: string;
+  fotoSiswa?: string;
   nisLokal: string;
   nisn: string;
   nik: string;
@@ -21,10 +17,6 @@ export interface StudentData {
   hobi: string;
   anakKe: string;
   jumlahSaudara: string;
-  pilihanProgram: string;
-  fotoSiswa: string;
-
-  // Alamat
   jenisTempatTinggal: string;
   alamat: string;
   propinsi: string;
@@ -36,12 +28,10 @@ export interface StudentData {
   jarakTempatTinggal: string;
   transportasi: string;
   jarakTempuh: string;
-
-  // Data Keluarga
   noKK: string;
   namaKepKeluarga: string;
-
-  // Ayah
+  
+  // Data Ayah
   namaAyah: string;
   nikAyah: string;
   tempatLahirAyah: string;
@@ -50,8 +40,8 @@ export interface StudentData {
   pekerjaanAyah: string;
   penghasilanAyahPerbulan: string;
   pendidikanAyah: string;
-
-  // Ibu
+  
+  // Data Ibu
   namaIbu: string;
   nikIbu: string;
   tempatLahirIbu: string;
@@ -60,23 +50,24 @@ export interface StudentData {
   pekerjaanIbu: string;
   penghasilanIbuPerbulan: string;
   pendidikanIbu: string;
-
-  // Wali
+  
+  // Data Wali
   namaWali: string;
   tahunLahirWali: string;
   nikWali: string;
   pendidikanWali: string;
   pekerjaanWali: string;
   penghasilanWali: string;
-
+  
   // Bantuan & Rumah
   kksKps: string;
   pkh: string;
   pip: string;
   kip: string;
   statusKepemilikanRumahOrangTua: string;
-
+  
   // Sekolah Asal
+  tahunAjaran: string;
   jenisLembagaJenjang: string;
   statusSekolahAsal: string;
   npsnSekolah: string;
@@ -86,18 +77,29 @@ export interface StudentData {
   noBlankoSKHU: string;
   noSeriIjazah: string;
   totalNilaiUN: string;
+
+  // AI & Metadata
+  aiAnalysis?: string;
+}
+
+export type FormStep = 'personal' | 'address' | 'family' | 'guardian' | 'assistance' | 'school' | 'review' | 'inden';
+
+export interface BackupItem {
+  timestamp: string;
+  count: number;
+  data: Partial<StudentData>[];
 }
 
 export interface AppState {
-  viewMode: 'landing' | 'inden' | 'login' | 'admin';
-  currentStep: 'inden' | 'data_diri' | 'sekolah' | 'ortu' | 'finish';
+  viewMode: 'landing' | 'inden' | 'admin' | 'login';
+  currentStep: FormStep;
   selectedYear: string;
-  studentData: StudentData;
+  studentData: Partial<StudentData>;
   errors: Record<string, string>;
   isSubmitting: boolean;
   isFinished: boolean;
   aiAnalysis: string | null;
-  allRegistrants: StudentData[];
+  allRegistrants: Partial<StudentData>[];
   editingIndex: number | null;
   isAdminAuthenticated: boolean;
   lastBackupTime: string | null;
