@@ -19,10 +19,10 @@ export const analyzeStudentProfile = async (data: Partial<StudentData>): Promise
     Analisis profil calon murid baru ini dan berikan feedback yang sangat memotivasi, keren, dan menggunakan gaya bahasa Gen Alpha (slay, rizz, sigma, certified, W, gass, aura, dll).
     
     Data Murid:
-    - Nama: ${data.namaSiswa}
-    - Hobi: ${data.hobi}
-    - Asal Sekolah: ${data.namaSekolahMadrasah}
-    - Program Pilihan: ${data.pilihanProgram}
+    - Nama: ${data.namaSiswa || 'Siswa'}
+    - Hobi: ${data.hobi || '-'}
+    - Asal Sekolah: ${data.namaSekolahMadrasah || '-'}
+    - Program Pilihan: ${data.pilihanProgram || 'Reguler'}
     
     Struktur Jawaban (Markdown):
     1. Greeting yang super keren (misal: "Oi Sigma!", "Aura kamu W!").
@@ -51,7 +51,6 @@ export const analyzeStudentProfile = async (data: Partial<StudentData>): Promise
 export const verifyNISN = async (nisn: string, nama: string): Promise<{ valid: boolean; message: string }> => {
   const apiKey = process.env.API_KEY;
   
-  // Cek jika API Key tidak ada atau kosong
   if (!apiKey || apiKey === 'undefined' || apiKey === '') {
     return { valid: nisn.length === 10, message: "Mode Offline: Format 10 digit (Valid)." };
   }

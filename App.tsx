@@ -36,7 +36,7 @@ const DESA_MAP: Record<string, string[]> = {
   'Kutasari': ['Candinata', 'Candiwulan', 'Cendana', 'Karangaren', 'Karangcegak', 'Karangjengkol', 'Karangklesem', 'Karangreja', 'Kekep', 'Kutasari', 'Limbangan', 'Meri', 'Munjul', 'Sumingkir'],
   'Bobotsari': ['Banjarsari', 'Bobotsari', 'Dagan', 'Gandasuli', 'Gunungkarang', 'Kalapacung', 'Karangduren', 'Karangmalang', 'Karangtalun', 'Lajer', 'Limbangan', 'Majapura', 'Pakuncen', 'Palumbungan', 'Palumbungan Wetan', 'Talagening', 'Tlagayasa'],
   'Bukateja': ['Bajong', 'Bukateja', 'Cipawon', 'Karangcengis', 'Karanggedang', 'Karangnangka', 'Kebutuh', 'Kedungjati', 'Kembangan', 'Kutawis', 'Majasari', 'Penaruban', 'Tidu', 'Wirasaba'],
-  'Kemangkon': ['Bakulan', 'Bokol', 'Gambarsari', 'Jetis', 'Kalialang', 'Karangkemiri', 'Karangtengah', 'Kedungbenda', 'Kedunglegok', 'Kemangkon', 'Majasem', 'Majatengah', 'Muntang', 'Panican', 'Pegandekan', 'Pelumutan', 'Senon', 'Sumilir', 'Toyareka'],
+  'Kemangkon': ['Bakulan', 'Bokol', 'Gambarsari', 'Jetis', 'Kalialang', 'Karangkemiri', 'Karangtengah', 'Kedungbenda', 'Kedunglegok', 'Kemangkon', 'Majasem', 'Majatengah', 'Muntang', 'Panican', 'Pegandekan', 'Pelumutan', 'Senon', 'Sumilir', 'Karangkemiri'],
   'Sokaraja': ['Sokaraja Kulon', 'Sokaraja Tengah', 'Sokaraja Wetan', 'Banjaranyar', 'Banjarsari Kidul', 'Jompo Kulon', 'Karangduren', 'Karangkedawung', 'Karangnanas', 'Kedondong', 'Klahang', 'Lemberang', 'Pamijen', 'Sokaraja Lor', 'Wiradadi'],
   'Purwokerto Utara': ['Bancarkembar', 'Bobosan', 'Grendeng', 'Karangwangkal', 'Pabuaran', 'Purwanegara', 'Sumampir'],
   'Banjarnegara': ['Ampelsari', 'Cendana', 'Sokayasa', 'Semampir', 'Wangon', 'Karangtengah', 'Krutuk', 'Kutabanjarnegara', 'Parakancanggah', 'Sokanandi', 'Semarang', 'Arcawinangun'],

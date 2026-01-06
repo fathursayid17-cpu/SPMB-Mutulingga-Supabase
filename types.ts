@@ -1,7 +1,7 @@
 
 export interface StudentData {
   id?: string; // ID dari Database (UUID)
-  noUrut: string;
+  noUrut?: string; // Optional karena di-generate
   isInden?: boolean;
   pilihanProgram?: 'Reguler' | 'Tahfizh' | 'Coding' | 'Bilingual' | 'Fullday';
   namaSiswa: string;
