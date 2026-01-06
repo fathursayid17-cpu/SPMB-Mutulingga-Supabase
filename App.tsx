@@ -60,6 +60,7 @@ const PROGRAM_OPTIONS = [
   { id: 'Fullday', label: 'FULLDAY', icon: '🏫', tier: 'Active', color: 'border-rose-500', glow: 'shadow-rose-500/20', desc: 'Integrasi kurikulum akademik & keislaman dari pagi-sore.' },
 ];
 
+// Perbaikan: Hapus Partial<> agar sesuai dengan StudentData
 const FULL_EMPTY_STUDENT_DATA: StudentData = {
   namaSiswa: '', fotoSiswa: '', nisLokal: '', nisn: '', nik: '', tempatLahir: '', tanggalLahir: '', agama: 'Islam', wargaNegara: 'WNI', jenisKelamin: 'Laki-laki',
   hobi: '', anakKe: '', jumlahSaudara: '', jenisTempatTinggal: 'Bersama Orang Tua', alamat: '', 
@@ -72,6 +73,7 @@ const FULL_EMPTY_STUDENT_DATA: StudentData = {
   tahunAjaran: '', jenisLembagaJenjang: 'SD', statusSekolahAsal: 'Negeri', namaSekolahMadrasah: '', pilihanProgram: 'Reguler',
   kksKps: '', pkh: '', pip: '', kip: '', statusKepemilikanRumahOrangTua: 'Milik Sendiri',
   npsnSekolah: '', lokasiSekolah: '', noPesertaUN: '', noBlankoSKHU: '', noSeriIjazah: '', totalNilaiUN: '',
+  // Tambahan default agar type aman
   noUrut: '', isInden: false
 };
 
@@ -96,21 +98,21 @@ const appStateToDb = (data: StudentData, isInden: boolean) => ({
 
 const dbToAppState = (dbRow: any): StudentData => ({
     ...FULL_EMPTY_STUDENT_DATA,
-    id: dbRow.id, tahunAjaran: dbRow.tahun_ajaran, noUrut: dbRow.no_urut, namaSiswa: dbRow.nama_siswa, nisLokal: dbRow.nis_lokal, nisn: dbRow.nisn, nik: dbRow.nik,
-    tempatLahir: dbRow.tempat_lahir, tanggalLahir: dbRow.tanggal_lahir, agama: dbRow.agama, wargaNegara: dbRow.warga_negara, jenisKelamin: dbRow.jenis_kelamin,
-    hobi: dbRow.hobi, anakKe: dbRow.anak_ke, jumlahSaudara: dbRow.jumlah_saudara, pilihanProgram: dbRow.pilihan_program, fotoSiswa: dbRow.foto_siswa,
-    jenisTempatTinggal: dbRow.jenis_tempat_tinggal, alamat: dbRow.alamat, propinsi: dbRow.propinsi, kabupaten: dbRow.kabupaten, kecamatan: dbRow.kecamatan,
-    desaKelurahan: dbRow.desa_kelurahan, kodePos: dbRow.kode_pos, nomorTelepon: dbRow.nomor_telepon, jarakTempatTinggal: dbRow.jarak_tempat_tinggal,
-    transportasi: dbRow.transportasi, jarakTempuh: dbRow.jarak_tempuh, noKK: dbRow.no_kk, namaKepKeluarga: dbRow.nama_kep_keluarga,
-    namaAyah: dbRow.nama_ayah, nikAyah: dbRow.nik_ayah, tempatLahirAyah: dbRow.tempat_lahir_ayah, tglLahirAyah: dbRow.tgl_lahir_ayah, statusAyah: dbRow.status_ayah,
-    pekerjaanAyah: dbRow.pekerjaan_ayah, penghasilanAyahPerbulan: dbRow.penghasilan_ayah_perbulan, pendidikanAyah: dbRow.pendidikan_ayah,
-    namaIbu: dbRow.nama_ibu, nikIbu: dbRow.nik_ibu, tempatLahirIbu: dbRow.tempat_lahir_ibu, tglLahirIbu: dbRow.tgl_lahir_ibu, statusIbu: dbRow.status_ibu,
-    pekerjaanIbu: dbRow.pekerjaan_ibu, penghasilanIbuPerbulan: dbRow.penghasilan_ibu_perbulan, pendidikanIbu: dbRow.pendidikan_ibu,
-    namaWali: dbRow.nama_wali, tahunLahirWali: dbRow.tahun_lahir_wali, nikWali: dbRow.nik_wali, pendidikanWali: dbRow.pendidikan_wali,
-    pekerjaanWali: dbRow.pekerjaan_wali, penghasilanWali: dbRow.penghasilan_wali, kksKps: dbRow.kks_kps, pkh: dbRow.pkh, pip: dbRow.pip, kip: dbRow.kip,
-    statusKepemilikanRumahOrangTua: dbRow.status_kepemilikan_rumah_orang_tua, jenisLembagaJenjang: dbRow.jenis_lembaga_jenjang, statusSekolahAsal: dbRow.status_sekolah_asal,
-    npsnSekolah: dbRow.npsn_sekolah, namaSekolahMadrasah: dbRow.nama_sekolah_madrasah, lokasiSekolah: dbRow.lokasi_sekolah, noPesertaUN: dbRow.no_peserta_un,
-    noBlankoSKHU: dbRow.no_blanko_skhu, noSeriIjazah: dbRow.no_seri_ijazah, totalNilaiUN: dbRow.total_nilai_un, isInden: dbRow.is_inden
+    id: dbRow.id, tahunAjaran: dbRow.tahun_ajaran || '', noUrut: dbRow.no_urut || '', namaSiswa: dbRow.nama_siswa || '', nisLokal: dbRow.nis_lokal || '', nisn: dbRow.nisn || '', nik: dbRow.nik || '',
+    tempatLahir: dbRow.tempat_lahir || '', tanggalLahir: dbRow.tanggal_lahir || '', agama: dbRow.agama || '', wargaNegara: dbRow.warga_negara || '', jenisKelamin: dbRow.jenis_kelamin || '',
+    hobi: dbRow.hobi || '', anakKe: dbRow.anak_ke || '', jumlahSaudara: dbRow.jumlah_saudara || '', pilihanProgram: dbRow.pilihan_program || '', fotoSiswa: dbRow.foto_siswa || '',
+    jenisTempatTinggal: dbRow.jenis_tempat_tinggal || '', alamat: dbRow.alamat || '', propinsi: dbRow.propinsi || '', kabupaten: dbRow.kabupaten || '', kecamatan: dbRow.kecamatan || '',
+    desaKelurahan: dbRow.desa_kelurahan || '', kodePos: dbRow.kode_pos || '', nomorTelepon: dbRow.nomor_telepon || '', jarakTempatTinggal: dbRow.jarak_tempat_tinggal || '',
+    transportasi: dbRow.transportasi || '', jarakTempuh: dbRow.jarak_tempuh || '', noKK: dbRow.no_kk || '', namaKepKeluarga: dbRow.nama_kep_keluarga || '',
+    namaAyah: dbRow.nama_ayah || '', nikAyah: dbRow.nik_ayah || '', tempatLahirAyah: dbRow.tempat_lahir_ayah || '', tglLahirAyah: dbRow.tgl_lahir_ayah || '', statusAyah: dbRow.status_ayah || '',
+    pekerjaanAyah: dbRow.pekerjaan_ayah || '', penghasilanAyahPerbulan: dbRow.penghasilan_ayah_perbulan || '', pendidikanAyah: dbRow.pendidikan_ayah || '',
+    namaIbu: dbRow.nama_ibu || '', nikIbu: dbRow.nik_ibu || '', tempatLahirIbu: dbRow.tempat_lahir_ibu || '', tglLahirIbu: dbRow.tgl_lahir_ibu || '', statusIbu: dbRow.status_ibu || '',
+    pekerjaanIbu: dbRow.pekerjaan_ibu || '', penghasilanIbuPerbulan: dbRow.penghasilan_ibu_perbulan || '', pendidikanIbu: dbRow.pendidikan_ibu || '',
+    namaWali: dbRow.nama_wali || '', tahunLahirWali: dbRow.tahun_lahir_wali || '', nikWali: dbRow.nik_wali || '', pendidikanWali: dbRow.pendidikan_wali || '',
+    pekerjaanWali: dbRow.pekerjaan_wali || '', penghasilanWali: dbRow.penghasilan_wali || '', kksKps: dbRow.kks_kps || '', pkh: dbRow.pkh || '', pip: dbRow.pip || '', kip: dbRow.kip || '',
+    statusKepemilikanRumahOrangTua: dbRow.status_kepemilikan_rumah_orang_tua || '', jenisLembagaJenjang: dbRow.jenis_lembaga_jenjang || '', statusSekolahAsal: dbRow.status_sekolah_asal || '',
+    npsnSekolah: dbRow.npsn_sekolah || '', namaSekolahMadrasah: dbRow.nama_sekolah_madrasah || '', lokasiSekolah: dbRow.lokasi_sekolah || '', noPesertaUN: dbRow.no_peserta_un || '',
+    noBlankoSKHU: dbRow.no_blanko_skhu || '', noSeriIjazah: dbRow.no_seri_ijazah || '', totalNilaiUN: dbRow.total_nilai_un || '', isInden: dbRow.is_inden
 });
 
 const App: React.FC = () => {
@@ -175,6 +177,7 @@ const App: React.FC = () => {
   const [loginCreds, setLoginCreds] = useState({ user: '', pass: '' });
   const [loginError, setLoginError] = useState('');
 
+  // --- FETCH DATA FROM SUPABASE ---
   const fetchRegistrants = async (year: string) => {
     const { data: dbData, error } = await supabase
       .from('pendaftaran')
@@ -185,7 +188,8 @@ const App: React.FC = () => {
     if (error) {
       console.error("Error fetching data:", error);
     } else if (dbData) {
-       const converted = dbData.map(row => dbToAppState(row));
+       // Perbaikan: Tambahkan tipe explicit (any) agar tidak error TS7006
+       const converted = dbData.map((row: any) => dbToAppState(row));
        setState(prev => ({ 
         ...prev, 
         allRegistrants: converted,
@@ -313,6 +317,7 @@ const App: React.FC = () => {
 
   const handleNextStep = () => { setAdminFormStep(p => p + 1); };
 
+  // --- SUBMIT TO SUPABASE ---
   const handleSubmit = async () => {
     if (!validateCurrentStep()) return;
     setState(prev => ({ ...prev, isSubmitting: true }));
@@ -322,12 +327,14 @@ const App: React.FC = () => {
       let error = null;
 
       if (state.editingIndex !== null) {
+        // UPDATE (Pastikan id ada)
         const studentId = state.allRegistrants[state.editingIndex].id;
         if(studentId) {
              const { error: updateError } = await supabase.from('pendaftaran').update(payload).eq('id', studentId);
              error = updateError;
         }
       } else {
+        // INSERT
         const { error: insertError } = await supabase.from('pendaftaran').insert([payload]);
         error = insertError;
       }
@@ -348,6 +355,7 @@ const App: React.FC = () => {
     }
   };
 
+  // --- DELETE FROM SUPABASE ---
   const handleDelete = (index: number) => { setDeleteConfirm({ show: true, index }); };
   const performDelete = async () => {
     const index = deleteConfirm.index;
@@ -379,6 +387,7 @@ const App: React.FC = () => {
   const exportToExcel = () => {
     if (state.allRegistrants.length === 0) return alert("Database masih kosong.");
     const dataToExport = state.allRegistrants.map((item) => {
+        // Export menggunakan format database yang lengkap (snake_case)
         return appStateToDb(item, item.isInden || false);
     });
     const worksheet = (window as any).XLSX.utils.json_to_sheet(dataToExport);
