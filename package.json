@@ -1,6 +1,6 @@
 
 {
-  "name": "spmb-mutulingga",
+  "name": "spmb-app",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -10,17 +10,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "@google/genai": "^1.34.0",
-    "@supabase/supabase-js": "^2.39.0"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@supabase/supabase-js": "^2.39.8",
+    "xlsx": "^0.18.5",
+    "lucide-react": "^0.344.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.1",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "typescript": "^5.6.3",
-    "vite": "^6.0.5"
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.18",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.4"
   }
 }

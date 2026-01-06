@@ -1,106 +1,104 @@
+export interface Pendaftar {
+  id?: number;
+  created_at?: string;
+  nama_lengkap: string;
+  nisn: string;
+  alamat: string;
+  no_whatsapp: string;
+  asal_sekolah: string;
+  jurusan: 'RPL' | 'TKJ' | 'AKL' | 'OTKP' | '';
+}
+
+export type ViewMode = 'form' | 'login' | 'admin';
+
+export type FormStep = 'inden' | 'personal' | 'address' | 'family' | 'guardian' | 'assistance' | 'school' | 'review';
 
 export interface StudentData {
-  id?: string; // ID dari Database (UUID)
-  noUrut?: string; // Optional karena di-generate
-  isInden?: boolean;
-  pilihanProgram?: 'Reguler' | 'Tahfizh' | 'Coding' | 'Bilingual' | 'Fullday';
-  namaSiswa: string;
-  fotoSiswa?: string;
-  nisLokal: string;
-  nisn: string;
-  nik: string;
-  tempatLahir: string;
-  tanggalLahir: string;
-  agama: string;
-  wargaNegara: string;
-  jenisKelamin: string;
-  hobi: string;
-  anakKe: string;
-  jumlahSaudara: string;
-  jenisTempatTinggal: string;
-  alamat: string;
-  propinsi: string;
-  kabupaten: string;
-  kecamatan: string;
-  desaKelurahan: string;
-  kodePos: string;
-  nomorTelepon: string;
-  jarakTempatTinggal: string;
-  transportasi: string;
-  jarakTempuh: string;
-  noKK: string;
-  namaKepKeluarga: string;
+  id?: string;
+  created_at?: string;
   
-  // Data Ayah
-  namaAyah: string;
-  nikAyah: string;
-  tempatLahirAyah: string;
-  tglLahirAyah: string;
-  statusAyah: string;
-  pekerjaanAyah: string;
-  penghasilanAyahPerbulan: string;
-  pendidikanAyah: string;
-  
-  // Data Ibu
-  namaIbu: string;
-  nikIbu: string;
-  tempatLahirIbu: string;
-  tglLahirIbu: string;
-  statusIbu: string;
-  pekerjaanIbu: string;
-  penghasilanIbuPerbulan: string;
-  pendidikanIbu: string;
-  
-  // Data Wali
-  namaWali: string;
-  tahunLahirWali: string;
-  nikWali: string;
-  pendidikanWali: string;
-  pekerjaanWali: string;
-  penghasilanWali: string;
-  
+  // Data Siswa
+  namaSiswa?: string;
+  nisLokal?: string;
+  nisn?: string;
+  nik?: string;
+  tempatLahir?: string;
+  tanggalLahir?: string;
+  agama?: string;
+  wargaNegara?: string;
+  jenisKelamin?: string;
+  hobi?: string;
+  anakKe?: number;
+  jumlahSaudara?: number;
+
+  // Alamat & Kontak
+  jenisTempatTinggal?: string;
+  alamat?: string;
+  propinsi?: string;
+  kabupaten?: string;
+  kecamatan?: string;
+  desaKelurahan?: string;
+  kodePos?: string;
+  nomorTelepon?: string;
+  jarakTempatTinggal?: string;
+  transportasi?: string;
+  jarakTempuh?: string;
+
+  // Data Keluarga
+  noKK?: string;
+  namaKepKeluarga?: string;
+
+  // Ayah
+  namaAyah?: string;
+  nikAyah?: string;
+  tempatLahirAyah?: string;
+  tglLahirAyah?: string;
+  statusAyah?: string;
+  pekerjaanAyah?: string;
+  penghasilanAyahPerbulan?: string;
+  pendidikanAyah?: string;
+
+  // Ibu
+  namaIbu?: string;
+  nikIbu?: string;
+  tempatLahirIbu?: string;
+  tglLahirIbu?: string;
+  statusIbu?: string;
+  pekerjaanIbu?: string;
+  penghasilanIbuPerbulan?: string;
+  pendidikanIbu?: string;
+
+  // Wali
+  namaWali?: string;
+  tahunLahirWali?: string;
+  nikWali?: string;
+  pendidikanWali?: string;
+  pekerjaanWali?: string;
+  penghasilanWali?: string;
+
   // Bantuan & Rumah
-  kksKps: string;
-  pkh: string;
-  pip: string;
-  kip: string;
-  statusKepemilikanRumahOrangTua: string;
-  
+  kksKps?: string;
+  pkh?: string;
+  pip?: string;
+  kip?: string;
+  statusKepemilikanRumahOrangTua?: string;
+
   // Sekolah Asal
-  tahunAjaran: string;
-  jenisLembagaJenjang: string;
-  statusSekolahAsal: string;
-  npsnSekolah: string;
-  namaSekolahMadrasah: string;
-  lokasiSekolah: string;
-  noPesertaUN: string;
-  noBlankoSKHU: string;
-  noSeriIjazah: string;
-  totalNilaiUN: string;
+  tahunAjaran?: string;
+  jenisLembagaJenjang?: string;
+  statusSekolahAsal?: string;
+  npsnSekolah?: string;
+  namaSekolahMadrasah?: string;
+  lokasiSekolah?: string;
+  noPesertaUN?: string;
+  noBlankoSKHU?: string;
+  noSeriIjazah?: string;
+  totalNilaiUN?: number;
 
-  // AI & Metadata
+  // Tambahan Aplikasi
+  pilihanProgram?: string;
+  fotoSiswa?: string;
+  noUrut?: string;
+  isInden?: boolean;
   aiAnalysis?: string;
-}
-
-export type FormStep = 'personal' | 'address' | 'family' | 'guardian' | 'assistance' | 'school' | 'review' | 'inden';
-
-export interface BackupItem {
-  timestamp: string;
-  count: number;
-  data: Partial<StudentData>[];
-}
-
-export interface AppState {
-  viewMode: 'landing' | 'inden' | 'admin' | 'login';
-  currentStep: FormStep;
-  selectedYear: string;
-  studentData: Partial<StudentData>;
-  errors: Record<string, string>;
-  isSubmitting: boolean;
-  isFinished: boolean;
-  aiAnalysis: string | null;
-  allRegistrants: Partial<StudentData>[];
-  editingIndex: number | null;
-  isAdminAuthenticated: boolean;
-  lastBackupTime: string | null;
 }

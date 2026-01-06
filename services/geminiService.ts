@@ -2,8 +2,21 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { StudentData } from "../types";
 
+// Helper untuk mendapatkan API Key dengan aman di berbagai environment
+const getApiKey = () => {
+  // Cek process.env dengan safety check (mencegah "process is not defined")
+  if (typeof process !== 'undefined' && process.env?.API_KEY) {
+    return process.env.API_KEY;
+  }
+  // Fallback ke Vite env jika tersedia
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_KEY) {
+    return import.meta.env.VITE_API_KEY;
+  }
+  return '';
+};
+
 export const analyzeStudentProfile = async (data: Partial<StudentData>): Promise<string> => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = getApiKey();
   
   // Cek jika API Key tidak ada atau kosong
   if (!apiKey || apiKey === 'undefined' || apiKey === '') {
@@ -49,7 +62,7 @@ export const analyzeStudentProfile = async (data: Partial<StudentData>): Promise
 };
 
 export const verifyNISN = async (nisn: string, nama: string): Promise<{ valid: boolean; message: string }> => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = getApiKey();
   
   if (!apiKey || apiKey === 'undefined' || apiKey === '') {
     return { valid: nisn.length === 10, message: "Mode Offline: Format 10 digit (Valid)." };

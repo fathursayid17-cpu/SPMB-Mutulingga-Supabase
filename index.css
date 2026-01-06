@@ -1,13 +1,20 @@
 
-/* 
-  Tailwind directives dihapus karena menggunakan CDN di index.html.
-  Custom CSS tambahan ada di bawah ini.
-*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-.print-maroon-bg { background-color: #800000 !important; color: white !important; }
-
-@layer utilities {
-  .text-shadow {
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-  }
+/* Custom scrollbar for better admin view */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; 
 }
