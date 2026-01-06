@@ -1,4 +1,3 @@
-
 import { supabase } from '../lib/supabaseClient';
 import { StudentData } from '../types';
 
@@ -159,7 +158,7 @@ const mapFromDb = (row: any): Partial<StudentData> => {
     statusSekolahAsal: row.status_sekolah_asal,
     npsnSekolah: row.npsn_sekolah,
     namaSekolahMadrasah: row.nama_sekolah_madrasah,
-    lokasiSekolah: row.lokasi_sekolah,
+    lokasi_sekolah: row.lokasi_sekolah,
     noPesertaUN: row.no_peserta_un,
     noBlankoSKHU: row.no_blanko_skhu,
     noSeriIjazah: row.no_seri_ijazah,
