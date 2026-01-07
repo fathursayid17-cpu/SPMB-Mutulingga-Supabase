@@ -3,7 +3,7 @@ import { dbService } from '../services/dbService';
 import { analyzeStudentProfile, verifyNISN } from '../services/geminiService';
 import { StudentData, FormStep } from '../types';
 import FormStepIndicator from './FormStepIndicator';
-import { Save, Loader2, Send, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Search, Sparkles } from 'lucide-react';
+import { Save, Loader2, Send, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Search, Sparkles, BookOpen, Mic, Atom, Trophy } from 'lucide-react';
 
 const RegistrationForm = () => {
   const [currentStep, setCurrentStep] = useState<FormStep>('inden');
@@ -13,16 +13,50 @@ const RegistrationForm = () => {
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  // Calculate default school year
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  const defaultTahunAjaran = currentMonth > 6 
-    ? `${currentYear}/${currentYear + 1}` 
-    : `${currentYear - 1}/${currentYear}`;
+  // Opsi Tahun Ajaran Sesuai Permintaan
+  const yearOptions = [
+    "2026/2027",
+    "2027/2028",
+    "2028/2029",
+    "2029/2030",
+    "2030/2031"
+  ];
+
+  // Data Program dengan visualisasi Card
+  const programOptions = [
+    { 
+      id: 'Reguler', 
+      label: 'Reguler', 
+      desc: 'Fullday School', 
+      icon: <BookOpen size={24} />, 
+      color: 'bg-blue-50 border-blue-200 text-blue-700 hover:border-blue-500 ring-blue-200' 
+    },
+    { 
+      id: 'Tahfidz', 
+      label: 'Tahfidz', 
+      desc: 'Boarding School', 
+      icon: <Mic size={24} />, 
+      color: 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:border-emerald-500 ring-emerald-200' 
+    },
+    { 
+      id: 'Sains', 
+      label: 'Kelas Sains', 
+      desc: 'Olimpiade & Riset', 
+      icon: <Atom size={24} />, 
+      color: 'bg-violet-50 border-violet-200 text-violet-700 hover:border-violet-500 ring-violet-200' 
+    },
+    { 
+      id: 'Olahraga', 
+      label: 'Bakat Olahraga', 
+      desc: 'Atlet & Prestasi', 
+      icon: <Trophy size={24} />, 
+      color: 'bg-orange-50 border-orange-200 text-orange-700 hover:border-orange-500 ring-orange-200' 
+    }
+  ];
 
   const [formData, setFormData] = useState<Partial<StudentData>>({
     // Defaults
-    tahunAjaran: defaultTahunAjaran,
+    tahunAjaran: yearOptions[0], // Default ke tahun pertama
     pilihanProgram: 'Reguler',
     wargaNegara: 'WNI',
     jenisTempatTinggal: 'Orang Tua',
@@ -35,6 +69,10 @@ const RegistrationForm = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
     setFormData({ ...formData, [e.target.name]: value });
+  };
+  
+  const handleProgramSelect = (programId: string) => {
+    setFormData({ ...formData, pilihanProgram: programId });
   };
 
   const handleNext = () => {
@@ -106,7 +144,7 @@ const RegistrationForm = () => {
         </div>
         <h2 className="text-2xl font-bold text-gray-800 mb-2">Pendaftaran Berhasil!</h2>
         <p className="text-gray-600 mb-8 leading-relaxed">
-          Data calon siswa <strong>{formData.namaSiswa}</strong> telah tersimpan. Panitia PPDB MTs Muhammadiyah 01 Purbalingga akan segera menghubungi.
+          Data calon siswa <strong>{formData.namaSiswa}</strong> untuk Tahun Ajaran <strong>{formData.tahunAjaran}</strong> telah tersimpan. Panitia PPDB MTs Muhammadiyah 01 Purbalingga akan segera menghubungi.
         </p>
         <button 
           onClick={() => window.location.reload()} 
@@ -161,33 +199,54 @@ const RegistrationForm = () => {
               </div>
 
               <div className="space-y-4">
-                <label className="flex items-center gap-4 p-4 border rounded-xl cursor-pointer hover:bg-gray-50 transition">
-                  <input 
-                    type="checkbox" 
-                    name="isInden"
-                    checked={formData.isInden || false}
-                    onChange={(e) => setFormData({...formData, isInden: e.target.checked})}
-                    className="w-6 h-6 text-indigo-600 rounded focus:ring-indigo-500"
-                  />
-                  <div>
-                    <span className="block font-bold text-gray-800">Ya, Saya mendaftar jalur Inden</span>
-                    <span className="text-sm text-gray-500">Centang jika Anda mendaftar sebelum gelombang reguler dibuka.</span>
-                  </div>
-                </label>
+                {/* Tahun Ajaran Selection - DITAMBAHKAN DISINI */}
+                <div>
+                   <label className="block text-sm font-bold text-slate-700 mb-2">Tahun Ajaran Masuk</label>
+                   <select 
+                    name="tahunAjaran" 
+                    value={formData.tahunAjaran} 
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none font-medium bg-white"
+                   >
+                     {yearOptions.map(year => (
+                       <option key={year} value={year}>{year}</option>
+                     ))}
+                   </select>
+                   <p className="text-xs text-gray-500 mt-1">Pilih tahun ajaran sesuai rencana masuk sekolah.</p>
+                </div>
+
+                <div className="pt-2 border-t border-dashed border-gray-200"></div>
 
                 <div>
-                   <label className="block text-sm font-bold text-slate-700 mb-2">Pilihan Program</label>
-                   <select 
-                    name="pilihanProgram" 
-                    value={formData.pilihanProgram} 
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
-                   >
-                     <option value="Reguler">Reguler (Fullday)</option>
-                     <option value="Tahfidz">Tahfidz (Boarding)</option>
-                     <option value="Sains">Kelas Sains</option>
-                     <option value="Olahraga">Kelas Bakat Olahraga</option>
-                   </select>
+                   <label className="block text-sm font-bold text-slate-700 mb-3">Pilihan Program Unggulan</label>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {programOptions.map((program) => (
+                      <button
+                        key={program.id}
+                        type="button"
+                        onClick={() => handleProgramSelect(program.id)}
+                        className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-200 group outline-none
+                          ${formData.pilihanProgram === program.id
+                            ? `${program.color} ring-2 ring-offset-2 shadow-lg scale-[1.02]`
+                            : 'bg-white border-gray-100 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                          }
+                        `}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className={`p-2 rounded-lg transition-colors ${formData.pilihanProgram === program.id ? 'bg-white/30' : 'bg-gray-100 text-gray-400 group-hover:bg-white group-hover:text-current'}`}>
+                            {program.icon}
+                          </div>
+                          {formData.pilihanProgram === program.id && (
+                            <div className="bg-white/30 p-1 rounded-full">
+                              <CheckCircle size={18} className="text-current" />
+                            </div>
+                          )}
+                        </div>
+                        <h4 className="font-bold text-lg">{program.label}</h4>
+                        <p className="text-xs opacity-80 font-medium mt-1">{program.desc}</p>
+                      </button>
+                    ))}
+                   </div>
                 </div>
 
                 <div>
@@ -201,6 +260,20 @@ const RegistrationForm = () => {
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
                    />
                 </div>
+                
+                 <label className="flex items-center gap-4 p-4 border rounded-xl cursor-pointer hover:bg-gray-50 transition mt-4">
+                  <input 
+                    type="checkbox" 
+                    name="isInden"
+                    checked={formData.isInden || false}
+                    onChange={(e) => setFormData({...formData, isInden: e.target.checked})}
+                    className="w-6 h-6 text-indigo-600 rounded focus:ring-indigo-500"
+                  />
+                  <div>
+                    <span className="block font-bold text-gray-800">Konfirmasi Jalur Inden</span>
+                    <span className="text-sm text-gray-500">Centang jika Anda mendaftar untuk tahun ajaran mendatang.</span>
+                  </div>
+                </label>
               </div>
             </div>
           )}
