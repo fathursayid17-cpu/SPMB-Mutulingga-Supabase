@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { dbService } from '../services/dbService';
+import { storageService } from '../services/storageService';
 import { analyzeStudentProfile, verifyNISN } from '../services/geminiService';
 import { StudentData, FormStep } from '../types';
 import FormStepIndicator from './FormStepIndicator';
-import { Save, Loader2, Send, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Search, Sparkles, BookOpen, Mic, Atom, Trophy } from 'lucide-react';
+import { Save, Loader2, Send, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Search, Sparkles, BookOpen, Mic, Atom, Trophy, Upload, Image as ImageIcon, X } from 'lucide-react';
 
 const RegistrationForm = () => {
   const [currentStep, setCurrentStep] = useState<FormStep>('inden');
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [verifyingNISN, setVerifyingNISN] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  // Opsi Tahun Ajaran Sesuai Permintaan
+  // Opsi Tahun Ajaran
   const yearOptions = [
     "2026/2027",
     "2027/2028",
@@ -56,7 +58,7 @@ const RegistrationForm = () => {
 
   const [formData, setFormData] = useState<Partial<StudentData>>({
     // Defaults
-    tahunAjaran: yearOptions[0], // Default ke tahun pertama
+    tahunAjaran: yearOptions[0], 
     pilihanProgram: 'Reguler',
     wargaNegara: 'WNI',
     jenisTempatTinggal: 'Orang Tua',
@@ -73,6 +75,20 @@ const RegistrationForm = () => {
   
   const handleProgramSelect = (programId: string) => {
     setFormData({ ...formData, pilihanProgram: programId });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setUploading(true);
+      try {
+        const url = await storageService.uploadPhoto(e.target.files[0]);
+        setFormData({ ...formData, fotoSiswa: url });
+      } catch (error: any) {
+        alert(error.message);
+      } finally {
+        setUploading(false);
+      }
+    }
   };
 
   const handleNext = () => {
@@ -199,7 +215,7 @@ const RegistrationForm = () => {
               </div>
 
               <div className="space-y-4">
-                {/* Tahun Ajaran Selection - DITAMBAHKAN DISINI */}
+                {/* Tahun Ajaran Selection */}
                 <div>
                    <label className="block text-sm font-bold text-slate-700 mb-2">Tahun Ajaran Masuk</label>
                    <select 
@@ -217,6 +233,7 @@ const RegistrationForm = () => {
 
                 <div className="pt-2 border-t border-dashed border-gray-200"></div>
 
+                {/* Program Selection */}
                 <div>
                    <label className="block text-sm font-bold text-slate-700 mb-3">Pilihan Program Unggulan</label>
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -281,6 +298,27 @@ const RegistrationForm = () => {
           {/* STEP 2: PERSONAL */}
           {currentStep === 'personal' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-right-4 duration-300">
+               {/* FOTO UPLOAD SECTION */}
+               <div className="md:col-span-2 flex justify-center mb-6">
+                 <div className="relative group">
+                   <div className="w-32 h-40 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+                     {formData.fotoSiswa ? (
+                       <img src={formData.fotoSiswa} alt="Foto Siswa" className="w-full h-full object-cover" />
+                     ) : (
+                       <div className="text-center text-gray-400">
+                         {uploading ? <Loader2 className="animate-spin mx-auto" /> : <ImageIcon className="mx-auto mb-1" />}
+                         <span className="text-xs">Foto 3x4</span>
+                       </div>
+                     )}
+                   </div>
+                   <label className="absolute bottom-[-10px] left-1/2 -translate-x-1/2 bg-white text-indigo-600 px-3 py-1 rounded-full shadow-md text-xs font-bold cursor-pointer hover:bg-indigo-50 transition whitespace-nowrap border border-indigo-100 flex items-center gap-1">
+                     <Upload size={12} />
+                     {uploading ? 'Uploading...' : formData.fotoSiswa ? 'Ganti Foto' : 'Upload Foto'}
+                     <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+                   </label>
+                 </div>
+               </div>
+
                <div className="md:col-span-2 space-y-2">
                  <label className="block text-sm font-bold text-slate-700">Nama Lengkap (Sesuai Ijazah SD/MI)</label>
                  <input required type="text" name="namaSiswa" value={formData.namaSiswa || ''} onChange={handleChange} className="input-field w-full px-4 py-3 rounded-xl border border-gray-200" placeholder="Huruf Kapital Semua" />
