@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
-import { StudentData } from '../types';
+import { StudentData } from '../../types';
 
 // Helper: Mapping dari App State (camelCase) ke DB Column (snake_case)
 const mapToDb = (data: Partial<StudentData>) => {
@@ -55,7 +55,7 @@ const mapToDb = (data: Partial<StudentData>) => {
     penghasilan_ibu_perbulan: data.penghasilanIbuPerbulan,
     pendidikan_ibu: data.pendidikanIbu,
 
-    // WALI
+    // WALI (Disesuaikan dengan SQL user: nama_wali, bukan nama_wali_siswa)
     nama_wali: data.namaWali,
     tahun_lahir_wali: data.tahunLahirWali,
     nik_wali: data.nikWali,

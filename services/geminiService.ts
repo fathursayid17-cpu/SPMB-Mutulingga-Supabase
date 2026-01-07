@@ -1,15 +1,18 @@
-
-import { GoogleGenAI, SchemaType } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { StudentData } from "../types";
 
 // Helper untuk mendapatkan API Key dengan aman di berbagai environment
 const getApiKey = () => {
-  // Prioritize Vite env
+  // @ts-ignore - Check process directly first (SDK requirement preferred)
+  if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+    // @ts-ignore
+    return process.env.API_KEY;
+  }
+  // Fallback to Vite env
   if (import.meta.env?.VITE_API_KEY) {
     return import.meta.env.VITE_API_KEY;
   }
-  // Fallback for safe access if process is polyfilled or defined elsewhere, 
-  // but casting to any to avoid TS errors if @types/node is not fully loaded globally
+  // Fallback for global access if needed
   try {
     const p = (globalThis as any).process;
     if (p && p.env && p.env.API_KEY) {
@@ -60,7 +63,7 @@ export const analyzeStudentProfile = async (data: Partial<StudentData>): Promise
       }
     });
     
-    return response.text() || "Profil kamu legit banget! Mutulingga siap bikin kamu makin sigma. Let's gass!";
+    return response.text || "Profil kamu legit banget! Mutulingga siap bikin kamu makin sigma. Let's gass!";
   } catch (error) {
     console.error("AI Analysis failed:", error);
     return "Maaf ya, AI Counselor lagi lowbat. Tapi tenang, profil kamu tetap certified keren!";
@@ -98,17 +101,17 @@ export const verifyNISN = async (nisn: string, nama: string): Promise<{ valid: b
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: SchemaType.OBJECT,
+          type: Type.OBJECT,
           properties: {
-            valid: { type: SchemaType.BOOLEAN },
-            message: { type: SchemaType.STRING }
+            valid: { type: Type.BOOLEAN },
+            message: { type: Type.STRING }
           },
           required: ["valid", "message"]
         }
       }
     });
 
-    const result = JSON.parse(response.text() || '{"valid": false, "message": "Gagal verifikasi"}');
+    const result = JSON.parse(response.text || '{"valid": false, "message": "Gagal verifikasi"}');
     return result;
   } catch (error) {
     return { valid: nisn.length === 10, message: nisn.length === 10 ? "Format NISN valid!" : "NISN harus 10 digit." };
