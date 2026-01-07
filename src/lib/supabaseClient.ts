@@ -1,31 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Helper untuk mengakses environment variable dengan aman tanpa menyebabkan crash
-const getEnv = (key: string): string => {
-  try {
-    // @ts-ignore - Supress TS warning
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-      // @ts-ignore
-      return import.meta.env[key] || '';
-    }
-  } catch (e) {
-    console.warn('Gagal membaca env:', e);
+// Fallback values from user context
+const FALLBACK_URL = 'https://fclgroxedtjyuznswose.supabase.co';
+const FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjbGdyb3hlZHRqeXV6bnN3b3NlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzU0NTYsImV4cCI6MjA4MzI1MTQ1Nn0.8RYVxGbbjVphbyMdQvpGQd3PNhXuRdlVZCXsTdDgvRQ';
+
+// Helper to access env vars safely
+const getEnv = (key: string) => {
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    // @ts-ignore
+    return import.meta.env[key];
   }
-  return '';
+  return undefined;
 };
 
-// URL Supabase Project Anda (Fallback jika .env belum terdeteksi)
-const FALLBACK_URL = 'https://fclgroxedtjyuznswose.supabase.co';
-
 const supabaseUrl = getEnv('VITE_SUPABASE_URL') || FALLBACK_URL;
-const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
+const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY') || FALLBACK_KEY;
 
-if (!supabaseAnonKey) {
-  console.warn("PERINGATAN: VITE_SUPABASE_ANON_KEY belum diset. Pastikan file .env sudah dibuat dan berisi key yang benar.");
-}
-
-// Inisialisasi client dengan fallback agar UI tetap bisa render (tidak white screen)
-export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey || 'placeholder-key-untuk-mencegah-crash'
-);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

@@ -3,25 +3,21 @@ import { StudentData } from "../types";
 
 // Helper untuk mendapatkan API Key dengan aman di berbagai environment
 const getApiKey = () => {
-  // @ts-ignore - Check process directly first (SDK requirement preferred)
+  const HARDCODED_KEY = 'AIzaSyC4YI4OCQ7r-3gcakKoT9tTerLn2IanPE4';
+
+  // @ts-ignore - Check process directly first
   if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
     // @ts-ignore
     return process.env.API_KEY;
   }
   // Fallback to Vite env
-  if (import.meta.env?.VITE_API_KEY) {
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+    // @ts-ignore
     return import.meta.env.VITE_API_KEY;
   }
-  // Fallback for global access if needed
-  try {
-    const p = (globalThis as any).process;
-    if (p && p.env && p.env.API_KEY) {
-      return p.env.API_KEY;
-    }
-  } catch (e) {
-    // ignore
-  }
-  return '';
+  
+  return HARDCODED_KEY;
 };
 
 export const analyzeStudentProfile = async (data: Partial<StudentData>): Promise<string> => {
@@ -29,7 +25,6 @@ export const analyzeStudentProfile = async (data: Partial<StudentData>): Promise
   
   // Cek jika API Key tidak ada atau kosong
   if (!apiKey || apiKey === 'undefined' || apiKey === '') {
-    console.warn("API_KEY is missing. Using offline default message.");
     return `Profil kamu legit banget, ${data.namaSiswa?.split(' ')[0] || 'Sob'}! MTsM 01 Pbg siap bikin kamu makin sigma dan berprestasi. Pilihan program ${data.pilihanProgram || 'kamu'} itu keputusan yang W banget alias WIN! Let's gass! 🚀 (System Note: AI Analysis Offline)`;
   }
 
