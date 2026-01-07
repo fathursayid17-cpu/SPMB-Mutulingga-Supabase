@@ -1,16 +1,22 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, SchemaType } from "@google/genai";
 import { StudentData } from "../types";
 
 // Helper untuk mendapatkan API Key dengan aman di berbagai environment
 const getApiKey = () => {
-  // Cek process.env dengan safety check (mencegah "process is not defined")
-  if (typeof process !== 'undefined' && process.env?.API_KEY) {
-    return process.env.API_KEY;
-  }
-  // Fallback ke Vite env jika tersedia
-  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_KEY) {
+  // Prioritize Vite env
+  if (import.meta.env?.VITE_API_KEY) {
     return import.meta.env.VITE_API_KEY;
+  }
+  // Fallback for safe access if process is polyfilled or defined elsewhere, 
+  // but casting to any to avoid TS errors if @types/node is not fully loaded globally
+  try {
+    const p = (globalThis as any).process;
+    if (p && p.env && p.env.API_KEY) {
+      return p.env.API_KEY;
+    }
+  } catch (e) {
+    // ignore
   }
   return '';
 };
@@ -47,14 +53,14 @@ export const analyzeStudentProfile = async (data: Partial<StudentData>): Promise
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         temperature: 0.9,
       }
     });
     
-    return response.text || "Profil kamu legit banget! Mutulingga siap bikin kamu makin sigma. Let's gass!";
+    return response.text() || "Profil kamu legit banget! Mutulingga siap bikin kamu makin sigma. Let's gass!";
   } catch (error) {
     console.error("AI Analysis failed:", error);
     return "Maaf ya, AI Counselor lagi lowbat. Tapi tenang, profil kamu tetap certified keren!";
@@ -87,22 +93,22 @@ export const verifyNISN = async (nisn: string, nama: string): Promise<{ valid: b
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: SchemaType.OBJECT,
           properties: {
-            valid: { type: Type.BOOLEAN },
-            message: { type: Type.STRING }
+            valid: { type: SchemaType.BOOLEAN },
+            message: { type: SchemaType.STRING }
           },
           required: ["valid", "message"]
         }
       }
     });
 
-    const result = JSON.parse(response.text || '{"valid": false, "message": "Gagal verifikasi"}');
+    const result = JSON.parse(response.text() || '{"valid": false, "message": "Gagal verifikasi"}');
     return result;
   } catch (error) {
     return { valid: nisn.length === 10, message: nisn.length === 10 ? "Format NISN valid!" : "NISN harus 10 digit." };

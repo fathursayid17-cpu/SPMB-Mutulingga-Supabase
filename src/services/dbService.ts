@@ -1,4 +1,3 @@
-
 import { supabase } from '../lib/supabaseClient';
 import { StudentData } from '../types';
 
@@ -56,7 +55,7 @@ const mapToDb = (data: Partial<StudentData>) => {
     penghasilan_ibu_perbulan: data.penghasilanIbuPerbulan,
     pendidikan_ibu: data.pendidikanIbu,
 
-    // WALI (Disesuaikan dengan SQL user: nama_wali, bukan nama_wali_siswa)
+    // WALI
     nama_wali: data.namaWali,
     tahun_lahir_wali: data.tahunLahirWali,
     nik_wali: data.nikWali,
@@ -141,7 +140,6 @@ const mapFromDb = (row: any): Partial<StudentData> => {
     penghasilanIbuPerbulan: row.penghasilan_ibu_perbulan,
     pendidikanIbu: row.pendidikan_ibu,
 
-    // Fix mapping Wali sesuai kolom SQL
     namaWali: row.nama_wali,
     tahunLahirWali: row.tahun_lahir_wali,
     nikWali: row.nik_wali,
