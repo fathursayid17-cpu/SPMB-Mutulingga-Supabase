@@ -1,14 +1,29 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Helper to access env vars safely
+const getEnv = (key: string) => {
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    // @ts-ignore
+    return import.meta.env[key];
+  }
+  // @ts-ignore
+  if (typeof process !== 'undefined' && process.env) {
+    // @ts-ignore
+    return process.env[key];
+  }
+  return '';
+};
+
+const supabaseUrl = getEnv('VITE_SUPABASE_URL');
+const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing in .env');
+  console.warn('VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing.');
 }
 
 export const supabase = createClient(
-  supabaseUrl || '',
-  supabaseAnonKey || ''
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key'
 );

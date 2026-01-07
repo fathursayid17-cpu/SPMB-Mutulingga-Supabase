@@ -1,89 +1,87 @@
 
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
-import { Pendaftar } from '../types';
+import { dbService } from '../services/dbService';
+import { StudentData } from '../types';
 import * as XLSX from 'xlsx';
-import { Download, LogOut, RefreshCw, Search, Trash2, Calendar, FileText } from 'lucide-react';
+import { Download, LogOut, RefreshCw, Search, Trash2, Calendar, FileText, Sparkles } from 'lucide-react';
 
 interface Props {
   onLogout: () => void;
 }
 
 const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
-  const [data, setData] = useState<Pendaftar[]>([]);
+  const [data, setData] = useState<Partial<StudentData>[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: result, error } = await supabase
-      .from('pendaftar')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      // Assuming current year '2025/2026' or similar, passing generic year for now or handle in service
+      // For now fetching all by not filtering strict year in service or passing a common one
+      const result = await dbService.fetchAll('2025/2026'); // Example year
+      // Fallback if fetchAll returns error handled internally or empty
+      if (result) {
+        setData(result);
+      }
+    } catch (error: any) {
       console.error('Error fetching data:', error);
-      alert('Gagal mengambil data: ' + error.message);
-    } else {
-      setData(result || []);
+      // alert('Gagal mengambil data: ' + error.message);
+      // Fallback to fetch directly if needed or just show empty
+      const result = await dbService.fetchAll(''); // Fetch all without year filter if needed
+      if (result) setData(result);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus data siswa ini?')) return;
     
     setDeletingId(id);
-    const { error } = await supabase.from('pendaftar').delete().eq('id', id);
-    
-    if (error) {
-      alert('Gagal menghapus: ' + error.message);
-    } else {
+    try {
+      await dbService.delete(id);
       setData(data.filter(item => item.id !== id));
+    } catch (error: any) {
+      alert('Gagal menghapus: ' + error.message);
+    } finally {
+      setDeletingId(null);
     }
-    setDeletingId(null);
   };
 
   const handleExport = () => {
     // Format data untuk Excel agar lebih rapi
     const formattedData = data.map(item => ({
       'Tanggal Daftar': item.created_at ? new Date(item.created_at).toLocaleString('id-ID') : '-',
-      'Nama Lengkap': item.nama_lengkap,
+      'Nama Siswa': item.namaSiswa,
       'NISN': item.nisn,
-      'Asal Sekolah': item.asal_sekolah,
-      'Jurusan': item.jurusan,
-      'WhatsApp': item.no_whatsapp,
-      'Alamat': item.alamat
+      'Program': item.pilihanProgram,
+      'Asal Sekolah': item.namaSekolahMadrasah,
+      'Alamat': item.alamat,
+      'No. HP': item.nomorTelepon,
+      'Nama Ayah': item.namaAyah,
+      'Pekerjaan Ayah': item.pekerjaanAyah,
+      'Nama Ibu': item.namaIbu,
+      'Rata-rata Penghasilan': item.penghasilanAyahPerbulan,
+      'Jalur Inden': item.isInden ? 'Ya' : 'Tidak',
+      'AI Analysis': item.aiAnalysis ? 'Analyzed' : '-'
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(formattedData);
-    
-    // Auto-width columns (simple estimation)
-    const wscols = [
-      { wch: 20 }, // Tanggal
-      { wch: 30 }, // Nama
-      { wch: 15 }, // NISN
-      { wch: 25 }, // Sekolah
-      { wch: 10 }, // Jurusan
-      { wch: 15 }, // WA
-      { wch: 40 }, // Alamat
-    ];
-    worksheet['!cols'] = wscols;
-
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Data Pendaftar");
-    XLSX.writeFile(workbook, `Data_SPMB_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data PPDB");
+    XLSX.writeFile(workbook, `Data_SPMB_Full_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const filteredData = data.filter(item => 
-    item.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.nisn.includes(searchTerm) ||
-    item.asal_sekolah.toLowerCase().includes(searchTerm.toLowerCase())
+    (item.namaSiswa || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (item.nisn || '').includes(searchTerm) ||
+    (item.namaSekolahMadrasah || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -133,9 +131,9 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-12 text-center">No</th>
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Lengkap</th>
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">NISN / Sekolah</th>
-              <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Jurusan</th>
+              <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Program</th>
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Kontak / Alamat</th>
-              <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Tanggal</th>
+              <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Aksi</th>
             </tr>
           </thead>
@@ -154,30 +152,30 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                 <tr key={item.id} className="hover:bg-slate-50 transition group">
                   <td className="p-4 text-sm text-gray-500 font-mono text-center">{idx + 1}</td>
                   <td className="p-4">
-                    <div className="text-sm font-bold text-gray-900">{item.nama_lengkap}</div>
+                    <div className="text-sm font-bold text-gray-900">{item.namaSiswa}</div>
+                    <div className="text-xs text-gray-500">{item.tempatLahir}, {item.tanggalLahir}</div>
                   </td>
                   <td className="p-4">
                     <div className="text-sm text-gray-900 font-mono">{item.nisn}</div>
-                    <div className="text-xs text-gray-500">{item.asal_sekolah}</div>
+                    <div className="text-xs text-gray-500">{item.namaSekolahMadrasah}</div>
                   </td>
                   <td className="p-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold
-                      ${item.jurusan === 'RPL' ? 'bg-blue-100 text-blue-800' : 
-                        item.jurusan === 'TKJ' ? 'bg-cyan-100 text-cyan-800' :
-                        item.jurusan === 'AKL' ? 'bg-emerald-100 text-emerald-800' :
+                      ${item.pilihanProgram === 'Reguler' ? 'bg-blue-100 text-blue-800' : 
+                        item.pilihanProgram === 'Tahfidz' ? 'bg-emerald-100 text-emerald-800' :
                         'bg-purple-100 text-purple-800'}`}>
-                      {item.jurusan}
+                      {item.pilihanProgram}
                     </span>
                   </td>
                   <td className="p-4">
-                    <div className="text-sm text-gray-900 font-medium">{item.no_whatsapp}</div>
-                    <div className="text-xs text-gray-500 truncate max-w-[200px]" title={item.alamat}>{item.alamat}</div>
+                    <div className="text-sm text-gray-900 font-medium">{item.nomorTelepon}</div>
+                    <div className="text-xs text-gray-500 truncate max-w-[150px]" title={item.alamat}>{item.alamat}</div>
                   </td>
                   <td className="p-4">
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <Calendar size={12} />
-                      {item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: '2-digit'}) : '-'}
-                    </div>
+                     <div className="flex flex-col gap-1">
+                        {item.isInden && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-md w-fit font-bold">INDEN</span>}
+                        {item.aiAnalysis && <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-md w-fit flex items-center gap-1"><Sparkles size={10}/> AI Verified</span>}
+                     </div>
                   </td>
                   <td className="p-4 text-center">
                     <button 
