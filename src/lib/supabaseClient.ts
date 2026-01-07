@@ -1,21 +1,31 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-// Helper untuk menangani environment variable dengan aman (mencegah crash jika undefined)
-const getEnv = (key: string) => {
-  // Gunakan optional chaining (?.) agar tidak error jika import.meta.env undefined
-  return import.meta.env?.[key] || '';
+// Helper untuk mengakses environment variable dengan aman tanpa menyebabkan crash
+const getEnv = (key: string): string => {
+  try {
+    // @ts-ignore - Supress TS warning
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      // @ts-ignore
+      return import.meta.env[key] || '';
+    }
+  } catch (e) {
+    console.warn('Gagal membaca env:', e);
+  }
+  return '';
 };
 
-const supabaseUrl = getEnv('VITE_SUPABASE_URL');
+// URL Supabase Project Anda (Fallback jika .env belum terdeteksi)
+const FALLBACK_URL = 'https://fclgroxedtjyuznswose.supabase.co';
+
+const supabaseUrl = getEnv('VITE_SUPABASE_URL') || FALLBACK_URL;
 const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("Supabase URL atau Anon Key belum disetting di .env. Fitur database mungkin tidak berfungsi.");
+if (!supabaseAnonKey) {
+  console.warn("PERINGATAN: VITE_SUPABASE_ANON_KEY belum diset. Pastikan file .env sudah dibuat dan berisi key yang benar.");
 }
 
-// Gunakan fallback URL agar createClient tidak crash saat inisialisasi awal (UI tetap muncul)
+// Inisialisasi client dengan fallback agar UI tetap bisa render (tidak white screen)
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key'
+  supabaseUrl,
+  supabaseAnonKey || 'placeholder-key-untuk-mencegah-crash'
 );
