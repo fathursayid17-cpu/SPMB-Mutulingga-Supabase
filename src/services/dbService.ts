@@ -1,8 +1,17 @@
 import { supabase } from '../lib/supabaseClient';
-import { StudentData } from '../../types';
+import { StudentData } from '../types';
 
 // Helper: Mapping dari App State (camelCase) ke DB Column (snake_case)
 const mapToDb = (data: Partial<StudentData>) => {
+  // Tentukan Tahun Ajaran Default jika tidak ada
+  // Logika sederhana: Jika bulan > 6 (Juli), maka tahun ajaran = TahunSekarang / TahunDepan
+  // Jika bulan <= 6, maka tahun ajaran = TahunLalu / TahunSekarang
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1; // 1-12
+  const defaultTahunAjaran = currentMonth > 6 
+    ? `${currentYear}/${currentYear + 1}` 
+    : `${currentYear - 1}/${currentYear}`;
+
   return {
     // DATA SISWA
     nama_siswa: data.namaSiswa,
@@ -55,7 +64,7 @@ const mapToDb = (data: Partial<StudentData>) => {
     penghasilan_ibu_perbulan: data.penghasilanIbuPerbulan,
     pendidikan_ibu: data.pendidikanIbu,
 
-    // WALI (Disesuaikan dengan SQL user: nama_wali, bukan nama_wali_siswa)
+    // WALI
     nama_wali: data.namaWali,
     tahun_lahir_wali: data.tahunLahirWali,
     nik_wali: data.nikWali,
@@ -71,7 +80,7 @@ const mapToDb = (data: Partial<StudentData>) => {
     status_kepemilikan_rumah_orang_tua: data.statusKepemilikanRumahOrangTua,
 
     // SEKOLAH ASAL
-    tahun_ajaran: data.tahunAjaran,
+    tahun_ajaran: data.tahunAjaran || defaultTahunAjaran,
     jenis_lembaga_jenjang: data.jenisLembagaJenjang,
     status_sekolah_asal: data.statusSekolahAsal,
     npsn_sekolah: data.npsnSekolah,
@@ -156,7 +165,7 @@ const mapFromDb = (row: any): Partial<StudentData> => {
     tahunAjaran: row.tahun_ajaran,
     jenisLembagaJenjang: row.jenis_lembaga_jenjang,
     statusSekolahAsal: row.status_sekolah_asal,
-    npsnSekolah: row.npsn_sekolah,
+    npsn_sekolah: row.npsn_sekolah,
     namaSekolahMadrasah: row.nama_sekolah_madrasah,
     lokasiSekolah: row.lokasi_sekolah,
     noPesertaUN: row.no_peserta_un,
@@ -177,11 +186,19 @@ const mapFromDb = (row: any): Partial<StudentData> => {
 
 export const dbService = {
   // Ambil semua data
-  async fetchAll(year: string) {
+  async fetchAll(year?: string) {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    const defaultTahunAjaran = currentMonth > 6 
+      ? `${currentYear}/${currentYear + 1}` 
+      : `${currentYear - 1}/${currentYear}`;
+      
+    const targetYear = year || defaultTahunAjaran;
+
     const { data, error } = await supabase
       .from('pendaftaran')
       .select('*')
-      .eq('tahun_ajaran', year)
+      .eq('tahun_ajaran', targetYear)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
