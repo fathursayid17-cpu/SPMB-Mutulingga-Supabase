@@ -1,28 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Fallback values untuk memastikan aplikasi jalan meski tanpa .env di CodeSandbox/StackBlitz
-const FALLBACK_URL = 'https://fclgroxedtjyuznswose.supabase.co';
-const FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFub24iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc2NzY3NTQ1NiwiZXhwIjoyMDgzMjUxNDU2fQ.8RYVxGbbjVphbyMdQvpGQd3PNhXuRdlVZCXsTdDgvRQ'; // Token ini harusnya valid JWT, saya pakai placeholder structure yang valid jika key asli anda expired, tapi disini saya restore key dari file sebelumnya yang anda kirim.
+// --- KONFIGURASI MANUAL (FALLBACK) ---
+// Data ini digunakan jika file .env tidak terbaca (misal di localhost)
+const FALLBACK_URL = 'https://fovlxmonkvdgfukbsxxm.supabase.co';
+const FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvdmx4bW9ua3ZkZ2Z1a2JzeHhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4NzgxNTgsImV4cCI6MjA4MzQ1NDE1OH0.UZh_5xoY6-8R0m5F80yT1gin-u2EC8ncuJmIgXCpRwk';
 
-// Restore key asli dari file yang anda berikan sebelumnya
-const REAL_FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjbGdyb3hlZHRqeXV6bnN3b3NlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzU0NTYsImV4cCI6MjA4MzI1MTQ1Nn0.8RYVxGbbjVphbyMdQvpGQd3PNhXuRdlVZCXsTdDgvRQ';
-
-// Helper to access env vars safely
+// Helper untuk membaca env vars dengan aman
 const getEnv = (key: string) => {
   // @ts-ignore
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
     // @ts-ignore
     return import.meta.env[key];
   }
-  // @ts-ignore
-  if (typeof process !== 'undefined' && process.env) {
-    // @ts-ignore
-    return process.env[key];
-  }
-  return undefined;
+  return null;
 };
 
+// Logika pemilihan URL & Key:
+// 1. Coba ambil dari Environment Variable (Vite/Vercel)
+// 2. Jika kosong, gunakan FALLBACK hardcoded di atas
 const supabaseUrl = getEnv('VITE_SUPABASE_URL') || FALLBACK_URL;
-const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY') || REAL_FALLBACK_KEY;
+const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY') || FALLBACK_KEY;
+
+// Validasi sederhana untuk debugging
+if (!supabaseUrl || supabaseUrl.includes('placeholder')) {
+  console.warn('Warning: Menggunakan URL Supabase placeholder atau kosong.');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

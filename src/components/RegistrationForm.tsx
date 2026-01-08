@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { dbService } from '../services/dbService';
 import { storageService } from '../services/storageService';
 import { analyzeStudentProfile, verifyNISN } from '../services/geminiService';
 import { StudentData, FormStep } from '../types';
 import FormStepIndicator from './FormStepIndicator';
-import { Save, Loader2, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Search, Sparkles, BookOpen, Mic, Atom, Trophy, Upload, Image as ImageIcon } from 'lucide-react';
+import { Save, Loader2, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Search, Sparkles, BookOpen, Mic, Atom, Trophy, Upload, Image as ImageIcon, FileDown, RotateCcw } from 'lucide-react';
 
 const RegistrationForm = () => {
   const [currentStep, setCurrentStep] = useState<FormStep>('inden');
@@ -14,6 +14,7 @@ const RegistrationForm = () => {
   const [verifyingNISN, setVerifyingNISN] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [hasDraft, setHasDraft] = useState(false);
   
   // Opsi Tahun Ajaran
   const yearOptions = [
@@ -56,8 +57,7 @@ const RegistrationForm = () => {
     }
   ];
 
-  const [formData, setFormData] = useState<Partial<StudentData>>({
-    // Defaults
+  const defaultFormData: Partial<StudentData> = {
     tahunAjaran: yearOptions[0], 
     pilihanProgram: 'Reguler',
     wargaNegara: 'WNI',
@@ -66,7 +66,42 @@ const RegistrationForm = () => {
     transportasi: 'Jalan Kaki',
     statusKepemilikanRumahOrangTua: 'Milik Sendiri',
     isInden: false
-  });
+  };
+
+  const [formData, setFormData] = useState<Partial<StudentData>>(defaultFormData);
+
+  // Cek draft saat mount
+  useEffect(() => {
+    const savedDraft = localStorage.getItem('spmb_draft');
+    if (savedDraft) {
+      setHasDraft(true);
+    }
+  }, []);
+
+  const handleSaveDraft = () => {
+    const draftData = {
+      step: currentStep,
+      data: formData,
+      timestamp: new Date().toISOString()
+    };
+    localStorage.setItem('spmb_draft', JSON.stringify(draftData));
+    setHasDraft(true);
+    alert('Draft berhasil disimpan! Anda bisa melanjutkan pengisian nanti.');
+  };
+
+  const handleLoadDraft = () => {
+    try {
+      const saved = localStorage.getItem('spmb_draft');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setFormData(parsed.data);
+        setCurrentStep(parsed.step);
+        alert('Data draft berhasil dimuat kembali.');
+      }
+    } catch (e) {
+      console.error("Gagal memuat draft", e);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
@@ -143,12 +178,13 @@ const RegistrationForm = () => {
 
     try {
       await dbService.create(formData);
+      // Hapus draft setelah berhasil submit
+      localStorage.removeItem('spmb_draft');
       setSuccess(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       console.error(err);
       
-      // Robust error handling to extract message
       let message = "Terjadi kesalahan koneksi";
       if (typeof err === 'string') {
         message = err;
@@ -186,22 +222,49 @@ const RegistrationForm = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <FormStepIndicator currentStep={currentStep} />
+      <div className="flex justify-between items-end mb-4">
+        <FormStepIndicator currentStep={currentStep} />
+        <div className="hidden md:flex gap-2 mb-10 ml-4">
+           {hasDraft && (
+             <button 
+               onClick={handleLoadDraft}
+               className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition"
+               title="Muat data terakhir yang disimpan"
+             >
+               <RotateCcw size={14} /> Pulihkan Draft
+             </button>
+           )}
+           <button 
+             onClick={handleSaveDraft}
+             className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition"
+             title="Simpan data sementara di browser ini"
+           >
+             <FileDown size={14} /> Simpan Draft
+           </button>
+        </div>
+      </div>
       
       <div className="bg-white/90 backdrop-blur-xl p-6 md:p-10 rounded-3xl shadow-2xl border border-white/50 relative overflow-hidden">
         {/* Header */}
-        <div className="mb-8 border-b border-gray-100 pb-4">
-          <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">
-            {currentStep === 'inden' && 'Pendaftaran Jalur Inden'}
-            {currentStep === 'personal' && 'Data Pribadi Siswa'}
-            {currentStep === 'address' && 'Alamat & Tempat Tinggal'}
-            {currentStep === 'family' && 'Data Orang Tua'}
-            {currentStep === 'guardian' && 'Data Wali'}
-            {currentStep === 'assistance' && 'Bantuan & Kesejahteraan'}
-            {currentStep === 'school' && 'Sekolah Asal'}
-            {currentStep === 'review' && 'Review & Analisis AI'}
-          </h1>
-          <p className="text-slate-500 mt-1">Lengkapi data dengan benar sesuai dokumen resmi (KK/Ijazah).</p>
+        <div className="mb-8 border-b border-gray-100 pb-4 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">
+                {currentStep === 'inden' && 'Pendaftaran Jalur Inden'}
+                {currentStep === 'personal' && 'Data Pribadi Siswa'}
+                {currentStep === 'address' && 'Alamat & Tempat Tinggal'}
+                {currentStep === 'family' && 'Data Orang Tua'}
+                {currentStep === 'guardian' && 'Data Wali'}
+                {currentStep === 'assistance' && 'Bantuan & Kesejahteraan'}
+                {currentStep === 'school' && 'Sekolah Asal'}
+                {currentStep === 'review' && 'Review & Analisis AI'}
+            </h1>
+            <p className="text-slate-500 mt-1">Lengkapi data dengan benar sesuai dokumen resmi (KK/Ijazah).</p>
+          </div>
+          {/* Mobile Draft Buttons */}
+          <div className="flex flex-col gap-2 md:hidden">
+             <button onClick={handleSaveDraft} className="p-2 bg-gray-100 rounded-lg text-gray-600"><FileDown size={18}/></button>
+             {hasDraft && <button onClick={handleLoadDraft} className="p-2 bg-indigo-50 rounded-lg text-indigo-600"><RotateCcw size={18}/></button>}
+          </div>
         </div>
 
         {errorMsg && (

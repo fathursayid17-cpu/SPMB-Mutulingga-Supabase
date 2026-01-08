@@ -3,7 +3,7 @@ import { dbService } from '../services/dbService';
 import { storageService } from '../services/storageService';
 import { StudentData } from '../types';
 import * as XLSX from 'xlsx';
-import { Download, LogOut, RefreshCw, Search, Trash2, FileText, Sparkles, Upload } from 'lucide-react';
+import { Download, LogOut, RefreshCw, Search, Trash2, FileText, Sparkles, Upload, Edit, X, Save } from 'lucide-react';
 
 interface Props {
   onLogout: () => void;
@@ -16,6 +16,11 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // State untuk Edit Modal
+  const [editingStudent, setEditingStudent] = useState<Partial<StudentData> | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [activeTab, setActiveTab] = useState<'siswa' | 'ortu' | 'sekolah' | 'lainnya'>('siswa');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,6 +73,36 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
       alert(msg);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleEditClick = (student: Partial<StudentData>) => {
+    setEditingStudent({ ...student });
+    setActiveTab('siswa');
+  };
+
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    if (editingStudent) {
+        const val = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
+        setEditingStudent({ ...editingStudent, [e.target.name]: val });
+    }
+  };
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStudent || !editingStudent.id) return;
+    
+    setSavingEdit(true);
+    try {
+        await dbService.update(editingStudent.id, editingStudent);
+        // Update local data
+        setData(data.map(item => item.id === editingStudent.id ? editingStudent : item));
+        setEditingStudent(null);
+        alert('Data berhasil diperbarui!');
+    } catch (error: any) {
+        alert('Gagal menyimpan perubahan: ' + error.message);
+    } finally {
+        setSavingEdit(false);
     }
   };
 
@@ -165,7 +200,7 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
       'No PKH': item.pkh,
       'No KIP': item.kip,
       'No PIP': item.pip,
-      'Status Rumah': item.statusKepemikanRumahOrangTua,
+      'Status Rumah': item.statusKepemilikanRumahOrangTua,
       
       // Sekolah Asal
       'Jenjang Sekolah': item.jenisLembagaJenjang,
@@ -198,7 +233,7 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
   );
 
   return (
-    <div className="bg-white/90 backdrop-blur-xl rounded-[24px] shadow-2xl overflow-hidden border border-white/50 h-[85vh] flex flex-col">
+    <div className="bg-white/90 backdrop-blur-xl rounded-[24px] shadow-2xl overflow-hidden border border-white/50 h-[85vh] flex flex-col relative">
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -330,14 +365,23 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                      </div>
                   </td>
                   <td className="p-4 text-center">
-                    <button 
-                      onClick={() => item.id && handleDelete(item.id)}
-                      disabled={deletingId === item.id}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                      title="Hapus Data"
-                    >
-                      {deletingId === item.id ? <RefreshCw size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                    </button>
+                    <div className="flex items-center justify-center gap-2">
+                        <button 
+                            onClick={() => handleEditClick(item)}
+                            className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                            title="Edit Data"
+                        >
+                            <Edit size={16} />
+                        </button>
+                        <button 
+                        onClick={() => item.id && handleDelete(item.id)}
+                        disabled={deletingId === item.id}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                        title="Hapus Data"
+                        >
+                        {deletingId === item.id ? <RefreshCw size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                        </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -345,6 +389,122 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
           </tbody>
         </table>
       </div>
+
+      {/* EDIT MODAL */}
+      {editingStudent && (
+        <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-4xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <Edit size={18} className="text-indigo-600"/> Edit Data Siswa
+                    </h3>
+                    <button onClick={() => setEditingStudent(null)} className="p-2 hover:bg-gray-200 rounded-lg transition">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="flex border-b bg-white">
+                    <button onClick={() => setActiveTab('siswa')} className={`flex-1 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'siswa' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Data Siswa</button>
+                    <button onClick={() => setActiveTab('ortu')} className={`flex-1 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'ortu' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Orang Tua</button>
+                    <button onClick={() => setActiveTab('sekolah')} className={`flex-1 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'sekolah' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Sekolah & Alamat</button>
+                    <button onClick={() => setActiveTab('lainnya')} className={`flex-1 py-3 text-sm font-bold border-b-2 transition ${activeTab === 'lainnya' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Lainnya</button>
+                </div>
+
+                <form onSubmit={saveEdit} className="flex-1 overflow-y-auto p-6 bg-gray-50">
+                    {activeTab === 'siswa' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label className="text-xs font-bold text-gray-500">Nama Lengkap</label><input name="namaSiswa" value={editingStudent.namaSiswa || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">NISN</label><input name="nisn" value={editingStudent.nisn || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">NIS Lokal</label><input name="nisLokal" value={editingStudent.nisLokal || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">NIK</label><input name="nik" value={editingStudent.nik || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">Tempat Lahir</label><input name="tempatLahir" value={editingStudent.tempatLahir || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">Tanggal Lahir</label><input type="date" name="tanggalLahir" value={editingStudent.tanggalLahir || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">Jenis Kelamin</label>
+                                <select name="jenisKelamin" value={editingStudent.jenisKelamin || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg">
+                                    <option value="L">Laki-laki</option>
+                                    <option value="P">Perempuan</option>
+                                </select>
+                            </div>
+                            <div><label className="text-xs font-bold text-gray-500">Agama</label><input name="agama" value={editingStudent.agama || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">Anak Ke</label><input name="anakKe" value={editingStudent.anakKe || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">Jml Saudara</label><input name="jumlahSaudara" value={editingStudent.jumlahSaudara || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                        </div>
+                    )}
+
+                    {activeTab === 'ortu' && (
+                         <div className="space-y-4">
+                            <div className="bg-white p-4 rounded-lg border">
+                                <h4 className="font-bold text-indigo-600 mb-2">Ayah</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <input name="namaAyah" placeholder="Nama Ayah" value={editingStudent.namaAyah || ''} onChange={handleEditChange} className="p-2 border rounded" />
+                                    <input name="nikAyah" placeholder="NIK Ayah" value={editingStudent.nikAyah || ''} onChange={handleEditChange} className="p-2 border rounded" />
+                                    <input name="pekerjaanAyah" placeholder="Pekerjaan" value={editingStudent.pekerjaanAyah || ''} onChange={handleEditChange} className="p-2 border rounded" />
+                                    <input name="penghasilanAyahPerbulan" placeholder="Penghasilan" value={editingStudent.penghasilanAyahPerbulan || ''} onChange={handleEditChange} className="p-2 border rounded" />
+                                </div>
+                            </div>
+                            <div className="bg-white p-4 rounded-lg border">
+                                <h4 className="font-bold text-pink-600 mb-2">Ibu</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <input name="namaIbu" placeholder="Nama Ibu" value={editingStudent.namaIbu || ''} onChange={handleEditChange} className="p-2 border rounded" />
+                                    <input name="nikIbu" placeholder="NIK Ibu" value={editingStudent.nikIbu || ''} onChange={handleEditChange} className="p-2 border rounded" />
+                                    <input name="pekerjaanIbu" placeholder="Pekerjaan" value={editingStudent.pekerjaanIbu || ''} onChange={handleEditChange} className="p-2 border rounded" />
+                                    <input name="penghasilanIbuPerbulan" placeholder="Penghasilan" value={editingStudent.penghasilanIbuPerbulan || ''} onChange={handleEditChange} className="p-2 border rounded" />
+                                </div>
+                            </div>
+                            <div className="bg-white p-4 rounded-lg border">
+                                <h4 className="font-bold text-amber-600 mb-2">Wali</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <input name="namaWali" placeholder="Nama Wali" value={editingStudent.namaWali || ''} onChange={handleEditChange} className="p-2 border rounded" />
+                                    <input name="nikWali" placeholder="NIK Wali" value={editingStudent.nikWali || ''} onChange={handleEditChange} className="p-2 border rounded" />
+                                </div>
+                            </div>
+                         </div>
+                    )}
+
+                    {activeTab === 'sekolah' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="md:col-span-2"><label className="text-xs font-bold text-gray-500">Alamat Rumah</label><textarea name="alamat" value={editingStudent.alamat || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" rows={2} /></div>
+                            <div><label className="text-xs font-bold text-gray-500">Desa/Kelurahan</label><input name="desaKelurahan" value={editingStudent.desaKelurahan || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">Kecamatan</label><input name="kecamatan" value={editingStudent.kecamatan || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">Kabupaten</label><input name="kabupaten" value={editingStudent.kabupaten || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">No HP</label><input name="nomorTelepon" value={editingStudent.nomorTelepon || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div className="md:col-span-2 border-t pt-4 mt-2"><label className="text-xs font-bold text-gray-500">Sekolah Asal</label><input name="namaSekolahMadrasah" value={editingStudent.namaSekolahMadrasah || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">NPSN</label><input name="npsnSekolah" value={editingStudent.npsnSekolah || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">Status Sekolah</label><input name="statusSekolahAsal" value={editingStudent.statusSekolahAsal || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                        </div>
+                    )}
+
+                    {activeTab === 'lainnya' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div><label className="text-xs font-bold text-gray-500">Program Pilihan</label>
+                                <select name="pilihanProgram" value={editingStudent.pilihanProgram || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg">
+                                    <option value="Reguler">Reguler</option>
+                                    <option value="Tahfidz">Tahfidz</option>
+                                    <option value="Sains">Sains</option>
+                                    <option value="Olahraga">Olahraga</option>
+                                </select>
+                            </div>
+                            <div><label className="text-xs font-bold text-gray-500">Tahun Ajaran</label><input name="tahunAjaran" value={editingStudent.tahunAjaran || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">No. KIP</label><input name="kip" value={editingStudent.kip || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">No. PKH</label><input name="pkh" value={editingStudent.pkh || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div><label className="text-xs font-bold text-gray-500">No. KKS</label><input name="kksKps" value={editingStudent.kksKps || ''} onChange={handleEditChange} className="w-full p-2 border rounded-lg" /></div>
+                            <div className="md:col-span-2 flex items-center gap-2 border p-3 rounded-lg bg-yellow-50">
+                                <input type="checkbox" name="isInden" checked={editingStudent.isInden || false} onChange={handleEditChange} className="w-4 h-4" />
+                                <span className="text-sm font-bold">Status Inden</span>
+                            </div>
+                        </div>
+                    )}
+                </form>
+
+                <div className="p-4 border-t bg-white flex justify-end gap-3">
+                    <button onClick={() => setEditingStudent(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition font-medium">Batal</button>
+                    <button onClick={saveEdit} disabled={savingEdit} className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-bold flex items-center gap-2">
+                        {savingEdit ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />} Simpan Perubahan
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 };
