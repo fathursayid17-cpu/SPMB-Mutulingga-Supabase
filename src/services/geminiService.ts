@@ -1,12 +1,33 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { StudentData } from "../types";
 
-export const analyzeStudentProfile = async (data: Partial<StudentData>): Promise<string> => {
-  // Use process.env.API_KEY directly as per guidelines
-  const apiKey = process.env.API_KEY;
+// Helper untuk mendapatkan API Key dengan aman di lingkungan Vite/Vercel
+const getApiKey = () => {
+  // 1. Cek Environment Variable standar Vite (Vercel menggunakan ini)
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+    // @ts-ignore
+    return import.meta.env.VITE_API_KEY;
+  }
+
+  // 2. Cek process.env sebagai fallback (untuk environment Node.js lokal tertentu)
+  // @ts-ignore
+  if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+    // @ts-ignore
+    return process.env.API_KEY;
+  }
   
-  if (!apiKey) {
-    return `Profil kamu legit banget, ${data.namaSiswa?.split(' ')[0] || 'Sob'}! MTsM 01 Pbg siap bikin kamu makin sigma dan berprestasi. Pilihan program ${data.pilihanProgram || 'kamu'} itu keputusan yang W banget alias WIN! Let's gass! 🚀 (System Note: AI Analysis Offline)`;
+  // 3. Return string kosong jika tidak ditemukan
+  return '';
+};
+
+export const analyzeStudentProfile = async (data: Partial<StudentData>): Promise<string> => {
+  const apiKey = getApiKey();
+  
+  // Cek jika API Key tidak ada atau kosong
+  if (!apiKey || apiKey === 'undefined' || apiKey === '') {
+    console.warn("API Key Gemini tidak ditemukan. Menggunakan mode offline.");
+    return `Profil kamu legit banget, ${data.namaSiswa?.split(' ')[0] || 'Sob'}! MTsM 01 Pbg siap bikin kamu makin sigma dan berprestasi. Pilihan program ${data.pilihanProgram || 'kamu'} itu keputusan yang W banget alias WIN! Let's gass! 🚀 (System Note: AI Analysis Offline - Cek konfigurasi API Key)`;
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -42,15 +63,15 @@ export const analyzeStudentProfile = async (data: Partial<StudentData>): Promise
     return response.text || "Profil kamu legit banget! Mutulingga siap bikin kamu makin sigma. Let's gass!";
   } catch (error) {
     console.error("AI Analysis failed:", error);
-    return "Maaf ya, AI Counselor lagi lowbat. Tapi tenang, profil kamu tetap certified keren!";
+    return "Maaf ya, AI Counselor lagi lowbat (Error Koneksi). Tapi tenang, profil kamu tetap certified keren!";
   }
 };
 
 export const verifyNISN = async (nisn: string, nama: string): Promise<{ valid: boolean; message: string }> => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = getApiKey();
   
-  if (!apiKey) {
-    return { valid: nisn.length === 10, message: "Mode Offline: Format 10 digit (Valid)." };
+  if (!apiKey || apiKey === 'undefined' || apiKey === '') {
+    return { valid: nisn.length === 10, message: "Mode Offline: Format 10 digit (Valid secara format)." };
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -90,6 +111,11 @@ export const verifyNISN = async (nisn: string, nama: string): Promise<{ valid: b
     const result = JSON.parse(response.text || '{"valid": false, "message": "Gagal verifikasi"}');
     return result;
   } catch (error) {
-    return { valid: nisn.length === 10, message: nisn.length === 10 ? "Format NISN valid!" : "NISN harus 10 digit." };
+    // Fallback logic jika AI gagal
+    const isValid = /^\d{10}$/.test(nisn);
+    return { 
+      valid: isValid, 
+      message: isValid ? "Format NISN valid! (Offline Check)" : "NISN harus 10 digit angka ya! (Offline Check)" 
+    };
   }
 };
