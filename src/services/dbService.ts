@@ -164,6 +164,7 @@ const mapFromDb = (row: any): Partial<StudentData> => {
     noSeriIjazah: row.no_seri_ijazah,
     totalNilaiUN: row.total_nilai_un,
 
+    // Fix: Gunakan camelCase keys agar sesuai dengan StudentData interface
     pilihanProgram: row.pilihan_program,
     fotoSiswa: row.foto_siswa,
     noUrut: row.no_urut,
@@ -176,19 +177,19 @@ const mapFromDb = (row: any): Partial<StudentData> => {
 };
 
 export const dbService = {
-  // Ambil semua data
+  // Ambil semua data, parameter year opsional
   async fetchAll(year?: string) {
     let query = supabase
       .from('pendaftaran')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .select('*');
 
     // Hanya filter jika year ada dan tidak kosong
     if (year && year.trim() !== '') {
       query = query.eq('tahun_ajaran', year);
     }
-
-    const { data, error } = await query;
+    
+    // Terapkan sorting
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) throw error;
     return data ? data.map(mapFromDb) : [];

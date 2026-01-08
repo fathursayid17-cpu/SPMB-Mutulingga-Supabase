@@ -24,7 +24,8 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
     setError(null);
     try {
       // Mengambil semua data tanpa filter tahun
-      const result = await dbService.fetchAll(''); 
+      // Parameter kosong = fetch semua
+      const result = await dbService.fetchAll(); 
       if (result) {
         setData(result);
       }
