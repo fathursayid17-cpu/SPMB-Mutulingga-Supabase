@@ -94,6 +94,11 @@ const mapToDb = (data: Partial<StudentData>) => {
 // Helper: Mapping dari DB Row (snake_case) ke App State (camelCase)
 const mapFromDb = (row: any): Partial<StudentData> => {
   return {
+    // SYSTEM
+    id: String(row.id), // Pastikan ID dikonversi ke string
+    created_at: row.created_at,
+
+    // DATA
     namaSiswa: row.nama_siswa,
     nisLokal: row.nis_lokal,
     nisn: row.nisn,
@@ -164,31 +169,25 @@ const mapFromDb = (row: any): Partial<StudentData> => {
     noSeriIjazah: row.no_seri_ijazah,
     totalNilaiUN: row.total_nilai_un,
 
-    // Fix: Gunakan camelCase keys agar sesuai dengan StudentData interface
     pilihanProgram: row.pilihan_program,
     fotoSiswa: row.foto_siswa,
     noUrut: row.no_urut,
     isInden: row.is_inden,
-    aiAnalysis: row.ai_analysis,
-    
-    // @ts-ignore
-    id: row.id 
+    aiAnalysis: row.ai_analysis
   };
 };
 
 export const dbService = {
-  // Ambil semua data, parameter year opsional
+  // Ambil semua data (Year opsional)
   async fetchAll(year?: string) {
-    let query = supabase
-      .from('pendaftaran')
-      .select('*');
+    let query = supabase.from('pendaftaran').select('*');
 
     // Hanya filter jika year ada dan tidak kosong
     if (year && year.trim() !== '') {
       query = query.eq('tahun_ajaran', year);
     }
     
-    // Terapkan sorting
+    // Urutkan data terbaru di atas
     const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) throw error;
