@@ -1,4 +1,15 @@
 
+export interface Pendaftar {
+  id?: number;
+  created_at?: string;
+  nama_lengkap: string;
+  nisn: string;
+  alamat: string;
+  no_whatsapp: string;
+  asal_sekolah: string;
+  jurusan: 'RPL' | 'TKJ' | 'AKL' | 'OTKP' | '';
+}
+
 export type ViewMode = 'landing' | 'form' | 'login' | 'admin';
 
 export type FormStep = 'inden' | 'personal' | 'address' | 'family' | 'guardian' | 'assistance' | 'school' | 'review';
