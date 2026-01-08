@@ -39,7 +39,6 @@ const mapToDb = (data: Partial<StudentData>) => {
     nama_ayah: data.namaAyah,
     nik_ayah: data.nikAyah,
     tempat_lahir_ayah: data.tempatLahirAyah,
-    // Fix: Access correct property tglLahirAyah from data object
     tgl_lahir_ayah: data.tglLahirAyah || null,
     status_ayah: data.statusAyah,
     pekerjaan_ayah: data.pekerjaanAyah,
@@ -50,14 +49,13 @@ const mapToDb = (data: Partial<StudentData>) => {
     nama_ibu: data.namaIbu,
     nik_ibu: data.nikIbu,
     tempat_lahir_ibu: data.tempatLahirIbu,
-    // Fix: Access correct property tglLahirIbu from data object
     tgl_lahir_ibu: data.tglLahirIbu || null,
     status_ibu: data.statusIbu,
     pekerjaan_ibu: data.pekerjaanIbu,
     penghasilan_ibu_perbulan: data.penghasilanIbuPerbulan,
     pendidikan_ibu: data.pendidikanIbu,
 
-    // WALI (Disesuaikan dengan SQL user: nama_wali, bukan nama_wali_siswa)
+    // WALI
     nama_wali: data.namaWali,
     tahun_lahir_wali: data.tahunLahirWali,
     nik_wali: data.nikWali,
@@ -168,9 +166,9 @@ const mapFromDb = (row: any): Partial<StudentData> => {
 
     pilihanProgram: row.pilihan_program,
     fotoSiswa: row.foto_siswa,
-    no_urut: row.no_urut,
-    is_inden: row.is_inden,
-    ai_analysis: row.ai_analysis,
+    noUrut: row.no_urut,
+    isInden: row.is_inden,
+    aiAnalysis: row.ai_analysis,
     
     // @ts-ignore
     id: row.id 
