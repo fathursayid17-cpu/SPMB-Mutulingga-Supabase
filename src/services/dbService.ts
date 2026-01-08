@@ -168,9 +168,9 @@ const mapFromDb = (row: any): Partial<StudentData> => {
 
     pilihanProgram: row.pilihan_program,
     fotoSiswa: row.foto_siswa,
-    noUrut: row.no_urut,
-    isInden: row.is_inden,
-    aiAnalysis: row.ai_analysis,
+    no_urut: row.no_urut,
+    is_inden: row.is_inden,
+    ai_analysis: row.ai_analysis,
     
     // @ts-ignore
     id: row.id 
@@ -179,15 +179,21 @@ const mapFromDb = (row: any): Partial<StudentData> => {
 
 export const dbService = {
   // Ambil semua data
-  async fetchAll(year: string) {
-    const { data, error } = await supabase
+  async fetchAll(year?: string) {
+    let query = supabase
       .from('pendaftaran')
       .select('*')
-      .eq('tahun_ajaran', year)
       .order('created_at', { ascending: false });
 
+    // Hanya filter jika year ada dan tidak kosong
+    if (year && year.trim() !== '') {
+      query = query.eq('tahun_ajaran', year);
+    }
+
+    const { data, error } = await query;
+
     if (error) throw error;
-    return data.map(mapFromDb);
+    return data ? data.map(mapFromDb) : [];
   },
 
   // Simpan data baru

@@ -23,7 +23,7 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch all data without year filter
+      // Mengambil semua data tanpa filter tahun
       const result = await dbService.fetchAll(''); 
       if (result) {
         setData(result);
@@ -119,7 +119,7 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
       
       // Alamat
       'Alamat': item.alamat,
-      'RT/RW/Dusun': item.alamat, // Assuming this is part of address field
+      'RT/RW/Dusun': item.alamat, 
       'Desa/Kelurahan': item.desaKelurahan,
       'Kecamatan': item.kecamatan,
       'Kabupaten': item.kabupaten,
