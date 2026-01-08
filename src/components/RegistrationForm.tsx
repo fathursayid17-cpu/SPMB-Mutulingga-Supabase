@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { dbService } from '../services/dbService';
 import { storageService } from '../services/storageService';
@@ -335,6 +336,11 @@ const RegistrationForm = () => {
                </div>
 
                <div className="space-y-2">
+                 <label className="block text-sm font-bold text-slate-700">NIS Lokal</label>
+                 <input type="text" name="nisLokal" value={formData.nisLokal || ''} onChange={handleChange} className="input-field w-full px-4 py-3 rounded-xl border border-gray-200" placeholder="Kosongkan jika tidak ada" />
+               </div>
+
+               <div className="space-y-2">
                  <label className="block text-sm font-bold text-slate-700">NIK (Nomor Induk Kependudukan)</label>
                  <input type="text" maxLength={16} name="nik" value={formData.nik || ''} onChange={handleChange} className="input-field w-full px-4 py-3 rounded-xl border border-gray-200" placeholder="16 Digit dari KK" />
                </div>
@@ -443,6 +449,11 @@ const RegistrationForm = () => {
                    <option value="Antar Jemput">Antar Jemput</option>
                    <option value="Angkutan Umum">Angkutan Umum</option>
                  </select>
+               </div>
+               
+               <div className="space-y-2">
+                 <label className="block text-sm font-bold text-slate-700">Waktu Tempuh (Menit)</label>
+                 <input type="text" name="jarakTempuh" value={formData.jarakTempuh || ''} onChange={handleChange} className="input-field w-full px-4 py-3 rounded-xl border border-gray-200" placeholder="Contoh: 15 menit" />
                </div>
             </div>
           )}
@@ -598,14 +609,14 @@ const RegistrationForm = () => {
           {/* STEP 7: SCHOOL */}
           {currentStep === 'school' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-right-4 duration-300">
-              <div className="md:col-span-2 space-y-2">
-                <label className="block text-sm font-bold text-slate-700">Nama Sekolah Asal (SD/MI)</label>
-                <input required type="text" name="namaSekolahMadrasah" value={formData.namaSekolahMadrasah || ''} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200" />
-              </div>
-
               <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700">NPSN Sekolah</label>
-                <input type="text" name="npsnSekolah" value={formData.npsnSekolah || ''} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200" />
+                <label className="block text-sm font-bold text-slate-700">Jenjang Sekolah Asal</label>
+                <select name="jenisLembagaJenjang" value={formData.jenisLembagaJenjang || ''} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200">
+                  <option value="">-- Pilih --</option>
+                  <option value="SD">SD</option>
+                  <option value="MI">MI</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
               </div>
 
               <div className="space-y-2">
@@ -617,14 +628,39 @@ const RegistrationForm = () => {
                 </select>
               </div>
 
+              <div className="md:col-span-2 space-y-2">
+                <label className="block text-sm font-bold text-slate-700">Nama Sekolah Asal (SD/MI)</label>
+                <input required type="text" name="namaSekolahMadrasah" value={formData.namaSekolahMadrasah || ''} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200" />
+              </div>
+
               <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700">No. Peserta Ujian Nasional (Jika ada)</label>
+                <label className="block text-sm font-bold text-slate-700">NPSN Sekolah</label>
+                <input type="text" name="npsnSekolah" value={formData.npsnSekolah || ''} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200" />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-slate-700">Lokasi Sekolah (Kabupaten)</label>
+                <input type="text" name="lokasiSekolah" value={formData.lokasiSekolah || ''} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-slate-700">No. Peserta Ujian (Jika ada)</label>
                 <input type="text" name="noPesertaUN" value={formData.noPesertaUN || ''} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-slate-700">No. Blanko SKHU</label>
+                <input type="text" name="noBlankoSKHU" value={formData.noBlankoSKHU || ''} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200" />
               </div>
 
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-slate-700">No. Seri Ijazah</label>
                 <input type="text" name="noSeriIjazah" value={formData.noSeriIjazah || ''} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200" />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-slate-700">Total Nilai Rata-Rata</label>
+                <input type="text" name="totalNilaiUN" value={formData.totalNilaiUN || ''} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200" placeholder="Contoh: 85.5" />
               </div>
             </div>
           )}

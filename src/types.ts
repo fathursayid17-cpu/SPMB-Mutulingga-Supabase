@@ -1,13 +1,3 @@
-export interface Pendaftar {
-  id?: number;
-  created_at?: string;
-  nama_lengkap: string;
-  nisn: string;
-  alamat: string;
-  no_whatsapp: string;
-  asal_sekolah: string;
-  jurusan: 'RPL' | 'TKJ' | 'AKL' | 'OTKP' | '';
-}
 
 export type ViewMode = 'landing' | 'form' | 'login' | 'admin';
 
@@ -17,6 +7,10 @@ export interface StudentData {
   id?: string;
   created_at?: string;
   
+  // Identitas Utama
+  tahunAjaran?: string;
+  noUrut?: string;
+
   // Data Siswa
   namaSiswa?: string;
   nisLokal?: string;
@@ -28,8 +22,10 @@ export interface StudentData {
   wargaNegara?: string;
   jenisKelamin?: string;
   hobi?: string;
-  anakKe?: number;
-  jumlahSaudara?: number;
+  anakKe?: string;
+  jumlahSaudara?: string;
+  pilihanProgram?: string;
+  fotoSiswa?: string;
 
   // Alamat & Kontak
   jenisTempatTinggal?: string;
@@ -84,7 +80,6 @@ export interface StudentData {
   statusKepemilikanRumahOrangTua?: string;
 
   // Sekolah Asal
-  tahunAjaran?: string;
   jenisLembagaJenjang?: string;
   statusSekolahAsal?: string;
   npsnSekolah?: string;
@@ -93,12 +88,9 @@ export interface StudentData {
   noPesertaUN?: string;
   noBlankoSKHU?: string;
   noSeriIjazah?: string;
-  totalNilaiUN?: number;
+  totalNilaiUN?: string;
 
-  // Tambahan Aplikasi
-  pilihanProgram?: string;
-  fotoSiswa?: string;
-  noUrut?: string;
+  // Metadata
   isInden?: boolean;
   aiAnalysis?: string;
 }

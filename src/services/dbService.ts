@@ -39,6 +39,7 @@ const mapToDb = (data: Partial<StudentData>) => {
     nama_ayah: data.namaAyah,
     nik_ayah: data.nikAyah,
     tempat_lahir_ayah: data.tempatLahirAyah,
+    // Fix: Access correct property tglLahirAyah from data object
     tgl_lahir_ayah: data.tglLahirAyah || null,
     status_ayah: data.statusAyah,
     pekerjaan_ayah: data.pekerjaanAyah,
@@ -49,6 +50,7 @@ const mapToDb = (data: Partial<StudentData>) => {
     nama_ibu: data.namaIbu,
     nik_ibu: data.nikIbu,
     tempat_lahir_ibu: data.tempatLahirIbu,
+    // Fix: Access correct property tglLahirIbu from data object
     tgl_lahir_ibu: data.tglLahirIbu || null,
     status_ibu: data.statusIbu,
     pekerjaan_ibu: data.pekerjaanIbu,
@@ -178,20 +180,14 @@ const mapFromDb = (row: any): Partial<StudentData> => {
 export const dbService = {
   // Ambil semua data
   async fetchAll(year: string) {
-    let query = supabase
+    const { data, error } = await supabase
       .from('pendaftaran')
       .select('*')
+      .eq('tahun_ajaran', year)
       .order('created_at', { ascending: false });
 
-    // Jika year disediakan dan tidak kosong, filter
-    if (year) {
-      query = query.eq('tahun_ajaran', year);
-    }
-
-    const { data, error } = await query;
-
     if (error) throw error;
-    return (data || []).map(mapFromDb);
+    return data.map(mapFromDb);
   },
 
   // Simpan data baru

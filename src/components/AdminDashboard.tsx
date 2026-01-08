@@ -38,7 +38,6 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
         } else if (error instanceof Error) {
           msg = error.message;
         } else if (typeof error === 'object' && error !== null) {
-          // Handle Supabase/Postgrest error objects which usually have message, details, or hint
           msg = error.message || error.details || error.hint || JSON.stringify(error);
         } else {
           msg = String(error);
@@ -100,26 +99,95 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
 
   const handleExport = () => {
     const formattedData = data.map(item => ({
+      // Identitas
+      'No. Urut': item.noUrut || '-',
+      'Tahun Ajaran': item.tahunAjaran,
       'Tanggal Daftar': item.created_at ? new Date(item.created_at).toLocaleString('id-ID') : '-',
       'Nama Siswa': item.namaSiswa,
       'NISN': item.nisn,
-      'Asal Sekolah': item.namaSekolahMadrasah,
-      'Tahun Ajaran': item.tahunAjaran,
-      'Program': item.pilihanProgram,
+      'NIS Lokal': item.nisLokal,
+      'NIK': item.nik,
+      'Tempat Lahir': item.tempatLahir,
+      'Tanggal Lahir': item.tanggalLahir,
+      'Agama': item.agama,
+      'Warga Negara': item.wargaNegara,
+      'Jenis Kelamin': item.jenisKelamin,
+      'Hobi': item.hobi,
+      'Anak Ke': item.anakKe,
+      'Jumlah Saudara': item.jumlahSaudara,
+      'Program Pilihan': item.pilihanProgram,
+      
+      // Alamat
       'Alamat': item.alamat,
+      'RT/RW/Dusun': item.alamat, // Assuming this is part of address field
+      'Desa/Kelurahan': item.desaKelurahan,
+      'Kecamatan': item.kecamatan,
+      'Kabupaten': item.kabupaten,
+      'Provinsi': item.propinsi,
+      'Kode Pos': item.kodePos,
+      'Jenis Tempat Tinggal': item.jenisTempatTinggal,
+      'Jarak Tempat Tinggal': item.jarakTempatTinggal,
+      'Transportasi': item.transportasi,
+      'Waktu Tempuh': item.jarakTempuh,
       'No. HP': item.nomorTelepon,
+      
+      // Keluarga
+      'No. KK': item.noKK,
+      'Kepala Keluarga': item.namaKepKeluarga,
+      
+      // Ayah
       'Nama Ayah': item.namaAyah,
+      'NIK Ayah': item.nikAyah,
+      'Tahun Lahir Ayah': item.tglLahirAyah,
+      'Pendidikan Ayah': item.pendidikanAyah,
       'Pekerjaan Ayah': item.pekerjaanAyah,
+      'Penghasilan Ayah': item.penghasilanAyahPerbulan,
+      'Status Ayah': item.statusAyah,
+      
+      // Ibu
       'Nama Ibu': item.namaIbu,
-      'Rata-rata Penghasilan': item.penghasilanAyahPerbulan,
+      'NIK Ibu': item.nikIbu,
+      'Tahun Lahir Ibu': item.tglLahirIbu,
+      'Pendidikan Ibu': item.pendidikanIbu,
+      'Pekerjaan Ibu': item.pekerjaanIbu,
+      'Penghasilan Ibu': item.penghasilanIbuPerbulan,
+      'Status Ibu': item.statusIbu,
+      
+      // Wali
+      'Nama Wali': item.namaWali,
+      'NIK Wali': item.nikWali,
+      'Pendidikan Wali': item.pendidikanWali,
+      'Pekerjaan Wali': item.pekerjaanWali,
+      'Penghasilan Wali': item.penghasilanWali,
+      
+      // Kesejahteraan
+      'No KKS/KPS': item.kksKps,
+      'No PKH': item.pkh,
+      'No KIP': item.kip,
+      'No PIP': item.pip,
+      'Status Rumah': item.statusKepemilikanRumahOrangTua,
+      
+      // Sekolah Asal
+      'Jenjang Sekolah': item.jenisLembagaJenjang,
+      'Status Sekolah': item.statusSekolahAsal,
+      'Nama Sekolah': item.namaSekolahMadrasah,
+      'NPSN': item.npsnSekolah,
+      'Lokasi Sekolah': item.lokasiSekolah,
+      'No Peserta UN': item.noPesertaUN,
+      'No SKHU': item.noBlankoSKHU,
+      'No Ijazah': item.noSeriIjazah,
+      'Total Nilai': item.totalNilaiUN,
+
+      // Lainnya
       'Jalur Inden': item.isInden ? 'Ya' : 'Tidak',
+      'AI Analysis': item.aiAnalysis ? 'Analyzed' : '-',
       'Link Foto': item.fotoSiswa || '-'
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(formattedData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Data PPDB");
-    XLSX.writeFile(workbook, `Data_SPMB_Full_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data Lengkap");
+    XLSX.writeFile(workbook, `Data_SPMB_Lengkap_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const filteredData = data.filter(item => 
@@ -154,7 +222,7 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
           <button onClick={handleExport} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-green-600 text-white px-5 py-3 rounded-xl hover:bg-green-700 transition font-medium shadow-md shadow-green-600/20">
-            <Download size={18} /> Export Excel
+            <Download size={18} /> Export Excel Lengkap
           </button>
           <button onClick={onLogout} className="flex items-center gap-2 bg-red-50 text-red-600 px-5 py-3 rounded-xl hover:bg-red-100 transition font-medium">
             <LogOut size={18} /> Logout

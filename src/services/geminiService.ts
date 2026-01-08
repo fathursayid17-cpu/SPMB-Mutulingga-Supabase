@@ -5,7 +5,6 @@ export const analyzeStudentProfile = async (data: Partial<StudentData>): Promise
   // Use process.env.API_KEY directly as per guidelines
   const apiKey = process.env.API_KEY;
   
-  // Cek jika API Key tidak ada atau kosong
   if (!apiKey) {
     return `Profil kamu legit banget, ${data.namaSiswa?.split(' ')[0] || 'Sob'}! MTsM 01 Pbg siap bikin kamu makin sigma dan berprestasi. Pilihan program ${data.pilihanProgram || 'kamu'} itu keputusan yang W banget alias WIN! Let's gass! 🚀 (System Note: AI Analysis Offline)`;
   }
