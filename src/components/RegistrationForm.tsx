@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { dbService } from '../services/dbService';
 import { storageService } from '../services/storageService';
@@ -114,6 +113,7 @@ const RegistrationForm = () => {
       case 'guardian': setCurrentStep('family'); break;
       case 'assistance': setCurrentStep('guardian'); break;
       case 'school': setCurrentStep('assistance'); break;
+      case 'school': setCurrentStep('assistance'); break;
       case 'review': setCurrentStep('school'); break;
     }
   };
@@ -147,7 +147,18 @@ const RegistrationForm = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       console.error(err);
-      setErrorMsg('Gagal mengirim data: ' + (err.message || "Terjadi kesalahan koneksi"));
+      
+      // Robust error handling to extract message
+      let message = "Terjadi kesalahan koneksi";
+      if (typeof err === 'string') {
+        message = err;
+      } else if (err instanceof Error) {
+        message = err.message;
+      } else if (typeof err === 'object' && err !== null) {
+        message = err.message || err.details || err.hint || "Gagal menyimpan data (Unknown Error)";
+      }
+      
+      setErrorMsg(`Gagal mengirim data: ${message}`);
     } finally {
       setLoading(false);
     }
@@ -194,9 +205,9 @@ const RegistrationForm = () => {
         </div>
 
         {errorMsg && (
-          <div className="bg-red-50 text-red-700 p-4 rounded-xl mb-6 flex items-center gap-3 border border-red-100">
+          <div className="bg-red-50 text-red-700 p-4 rounded-xl mb-6 flex items-center gap-3 border border-red-100 animate-in slide-in-from-top-2">
             <AlertCircle size={20} className="shrink-0" />
-            <span className="font-medium">{errorMsg}</span>
+            <span className="font-medium break-words w-full">{errorMsg}</span>
           </div>
         )}
 

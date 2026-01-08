@@ -165,7 +165,7 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
       'No PKH': item.pkh,
       'No KIP': item.kip,
       'No PIP': item.pip,
-      'Status Rumah': item.statusKepemilikanRumahOrangTua,
+      'Status Rumah': item.statusKepemikanRumahOrangTua,
       
       // Sekolah Asal
       'Jenjang Sekolah': item.jenisLembagaJenjang,

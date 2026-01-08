@@ -55,7 +55,7 @@ const mapToDb = (data: Partial<StudentData>) => {
     penghasilan_ibu_perbulan: data.penghasilanIbuPerbulan,
     pendidikan_ibu: data.pendidikanIbu,
 
-    // WALI
+    // WALI (Disesuaikan dengan SQL user: nama_wali, bukan nama_wali_siswa)
     nama_wali: data.namaWali,
     tahun_lahir_wali: data.tahunLahirWali,
     nik_wali: data.nikWali,
@@ -94,11 +94,6 @@ const mapToDb = (data: Partial<StudentData>) => {
 // Helper: Mapping dari DB Row (snake_case) ke App State (camelCase)
 const mapFromDb = (row: any): Partial<StudentData> => {
   return {
-    // SYSTEM
-    id: String(row.id), // Pastikan ID dikonversi ke string
-    created_at: row.created_at,
-
-    // DATA
     namaSiswa: row.nama_siswa,
     nisLokal: row.nis_lokal,
     nisn: row.nisn,
@@ -170,10 +165,13 @@ const mapFromDb = (row: any): Partial<StudentData> => {
     totalNilaiUN: row.total_nilai_un,
 
     pilihanProgram: row.pilihan_program,
-    fotoSiswa: row.foto_siswa,
-    noUrut: row.no_urut,
-    isInden: row.is_inden,
-    aiAnalysis: row.ai_analysis
+    foto_siswa: row.foto_siswa,
+    no_urut: row.no_urut,
+    is_inden: row.is_inden,
+    ai_analysis: row.ai_analysis,
+    
+    // @ts-ignore
+    id: row.id 
   };
 };
 
