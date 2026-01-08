@@ -4,7 +4,7 @@ import { storageService } from '../services/storageService';
 import { analyzeStudentProfile, verifyNISN } from '../services/geminiService';
 import { StudentData, FormStep } from '../types';
 import FormStepIndicator from './FormStepIndicator';
-import { Save, Loader2, Send, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Search, Sparkles, BookOpen, Mic, Atom, Trophy, Upload, Image as ImageIcon, X } from 'lucide-react';
+import { Save, Loader2, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Search, Sparkles, BookOpen, Mic, Atom, Trophy, Upload, Image as ImageIcon } from 'lucide-react';
 
 const RegistrationForm = () => {
   const [currentStep, setCurrentStep] = useState<FormStep>('inden');

@@ -178,14 +178,20 @@ const mapFromDb = (row: any): Partial<StudentData> => {
 export const dbService = {
   // Ambil semua data
   async fetchAll(year: string) {
-    const { data, error } = await supabase
+    let query = supabase
       .from('pendaftaran')
       .select('*')
-      .eq('tahun_ajaran', year)
       .order('created_at', { ascending: false });
 
+    // Jika year disediakan dan tidak kosong, filter
+    if (year) {
+      query = query.eq('tahun_ajaran', year);
+    }
+
+    const { data, error } = await query;
+
     if (error) throw error;
-    return data.map(mapFromDb);
+    return (data || []).map(mapFromDb);
   },
 
   // Simpan data baru

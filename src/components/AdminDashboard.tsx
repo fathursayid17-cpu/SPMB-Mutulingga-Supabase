@@ -3,7 +3,7 @@ import { dbService } from '../services/dbService';
 import { storageService } from '../services/storageService';
 import { StudentData } from '../types';
 import * as XLSX from 'xlsx';
-import { Download, LogOut, RefreshCw, Search, Trash2, FileText, Sparkles, Upload, Image as ImageIcon } from 'lucide-react';
+import { Download, LogOut, RefreshCw, Search, Trash2, FileText, Sparkles, Upload } from 'lucide-react';
 
 interface Props {
   onLogout: () => void;
@@ -15,18 +15,39 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const result = await dbService.fetchAll(''); // Fetch all
+      // Fetch all data without year filter
+      const result = await dbService.fetchAll(''); 
       if (result) {
         setData(result);
       }
     } catch (error: any) {
       console.error('Error fetching data:', error);
+      
+      let msg = 'Gagal memuat data.';
+      try {
+        if (typeof error === 'string') {
+          msg = error;
+        } else if (error instanceof Error) {
+          msg = error.message;
+        } else if (typeof error === 'object' && error !== null) {
+          // Handle Supabase/Postgrest error objects which usually have message, details, or hint
+          msg = error.message || error.details || error.hint || JSON.stringify(error);
+        } else {
+          msg = String(error);
+        }
+      } catch (e) {
+        msg = 'Terjadi kesalahan yang tidak dapat ditampilkan.';
+      }
+      
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -44,7 +65,8 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
       await dbService.delete(id);
       setData(data.filter(item => item.id !== id));
     } catch (error: any) {
-      alert('Gagal menghapus: ' + error.message);
+      const msg = error?.message || 'Gagal menghapus data';
+      alert(msg);
     } finally {
       setDeletingId(null);
     }
@@ -69,7 +91,7 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
         setData(data.map(item => item.id === uploadingId ? { ...item, fotoSiswa: url } : item));
         alert('Foto berhasil diupload!');
       } catch (error: any) {
-        alert('Gagal upload: ' + error.message);
+        alert('Gagal upload: ' + (error.message || 'Unknown error'));
       } finally {
         setUploadingId(null);
       }
@@ -81,8 +103,9 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
       'Tanggal Daftar': item.created_at ? new Date(item.created_at).toLocaleString('id-ID') : '-',
       'Nama Siswa': item.namaSiswa,
       'NISN': item.nisn,
-      'Program': item.pilihanProgram,
       'Asal Sekolah': item.namaSekolahMadrasah,
+      'Tahun Ajaran': item.tahunAjaran,
+      'Program': item.pilihanProgram,
       'Alamat': item.alamat,
       'No. HP': item.nomorTelepon,
       'Nama Ayah': item.namaAyah,
@@ -102,7 +125,8 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
   const filteredData = data.filter(item => 
     (item.namaSiswa || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (item.nisn || '').includes(searchTerm) ||
-    (item.namaSekolahMadrasah || '').toLowerCase().includes(searchTerm.toLowerCase())
+    (item.namaSekolahMadrasah || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (item.tahunAjaran || '').includes(searchTerm)
   );
 
   return (
@@ -144,7 +168,7 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input 
             type="text" 
-            placeholder="Cari Nama, NISN, atau Sekolah..." 
+            placeholder="Cari Nama, NISN, Sekolah, atau Tahun..." 
             className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition shadow-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -161,6 +185,7 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-20">Foto</th>
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Lengkap</th>
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">NISN / Sekolah</th>
+              <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Thn Ajaran</th>
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Program</th>
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Kontak / Alamat</th>
               <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
@@ -168,10 +193,16 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">
-            {loading ? (
-              <tr><td colSpan={8} className="p-12 text-center text-gray-500 animate-pulse">Sedang memuat data...</td></tr>
+            {error ? (
+               <tr><td colSpan={9} className="p-12 text-center text-red-500 bg-red-50">
+                <p className="font-bold">Terjadi Kesalahan</p>
+                <p className="text-sm font-mono mt-2 break-all">{error}</p>
+                <button onClick={fetchData} className="mt-4 px-4 py-2 bg-red-100 rounded-lg hover:bg-red-200 transition">Coba Lagi</button>
+               </td></tr>
+            ) : loading ? (
+              <tr><td colSpan={9} className="p-12 text-center text-gray-500 animate-pulse">Sedang memuat data...</td></tr>
             ) : filteredData.length === 0 ? (
-              <tr><td colSpan={8} className="p-12 text-center text-gray-500">
+              <tr><td colSpan={9} className="p-12 text-center text-gray-500">
                 <div className="flex flex-col items-center gap-2">
                   <Search size={32} className="text-gray-300"/>
                   <p>Tidak ada data pendaftar ditemukan.</p>
@@ -206,6 +237,11 @@ const AdminDashboard: React.FC<Props> = ({ onLogout }) => {
                   <td className="p-4">
                     <div className="text-sm text-gray-900 font-mono">{item.nisn}</div>
                     <div className="text-xs text-gray-500">{item.namaSekolahMadrasah}</div>
+                  </td>
+                  <td className="p-4">
+                    <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-md font-semibold whitespace-nowrap">
+                      {item.tahunAjaran || '-'}
+                    </span>
                   </td>
                   <td className="p-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold
